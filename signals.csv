@@ -2,3 +2,8 @@ exit_time,exit_price,candles,entry_price,result,signal_id,strategy_name,timefram
 ,,[],,,1718158402118,SMA Crossover,120,1718158582.1180027,buy,waiting
 ,,[],,,1718158547161,SMA Crossover,120,1718158727.1611662,buy,waiting
 ,,[],,,1718158682071,SMA Crossover,120,1718158862.071648,buy,waiting
+,,[],,,1718159167146,SMA Crossover,120,1718159347.146444,buy,waiting
+,,[],,,1718159232063,RSI Overbought,60,1718159412.0636854,sell,waiting
+,,[],,,1718159297282,RSI Overbought,60,1718159477.2820377,sell,waiting
+,,[],,,1718159597049,SMA Crossover,120,1718159777.0499046,buy,waiting
+,,[],,,1718159697050,SMA Crossover,120,1718159877.050984,buy,waiting

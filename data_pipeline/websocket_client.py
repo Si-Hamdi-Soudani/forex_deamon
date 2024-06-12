@@ -3,12 +3,15 @@ import json
 import collections
 import time
 import pickle
+import csv
+import os
+import datetime
 
 class CoinMarketCapWebsocketClient:
   """Connects to CoinMarketCap websocket and receives price updates."""
 
   def __init__(self, on_message_callback, on_error_callback=None, on_close_callback=None, 
-               price_history_length=120, checkpoint_interval=60):
+               price_history_length=120, checkpoint_interval=60,  symbol='BTCUSDT'):
     """Initializes the websocket client."""
     self.on_message_callback = on_message_callback
     self.on_error_callback = on_error_callback
@@ -20,6 +23,15 @@ class CoinMarketCapWebsocketClient:
     self.current_candle = None
     self.ws = None
     self.connected = False
+    self.price_data_file = "price_data.csv"  # File to store price data
+    self.price_data_header = ['Date', 'Close']  
+    self.message_buffer = ""
+    self.symbol = symbol
+    # Create the price data file and write the header if it doesn't exist
+    if not os.path.exists(self.price_data_file):
+        with open(self.price_data_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(self.price_data_header)
 
   def on_open(self, ws):
     """Sends the subscription message when the connection is opened."""
@@ -32,8 +44,33 @@ class CoinMarketCapWebsocketClient:
     }))
 
   def on_message(self, ws, message):
-    """Handles incoming websocket messages."""
-    self.on_message_callback(message) 
+        """Handles incoming websocket messages, accumulating fragments until a complete JSON is received."""
+        self.message_buffer += message
+        # Attempt to parse the buffer as JSON
+        try:
+            data = json.loads(self.message_buffer)
+
+            # Reset the buffer if parsing is successful
+            self.message_buffer = ""
+
+            # Filter messages by symbol
+            if data.get("d") and data["d"].get("s") == self.symbol:  # Check for 's' key existence
+                price = data["d"]["p"]
+                timestamp = int(data["d"]["t"]) / 1000  # Convert milliseconds to seconds
+                date_time = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+                # Append price data to the CSV file
+                with open(self.price_data_file, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([date_time, price])
+
+                # Call the user-defined on_message callback
+                if self.on_message_callback:
+                    self.on_message_callback(data)  # Pass the parsed data
+
+        except json.JSONDecodeError:
+            # Incomplete message, wait for more fragments
+            pass
 
   def on_error(self, ws, error):
     """Handles websocket errors."""
