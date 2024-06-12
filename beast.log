@@ -1,0 +1,9 @@
+2024-06-12 02:06:25,704 - INFO - Websocket connected
+2024-06-12 02:06:41,939 - INFO - Websocket connected
+2024-06-12 02:06:55,201 - INFO - Websocket connected
+2024-06-12 02:09:01,322 - INFO - Websocket connected
+2024-06-12 02:09:55,400 - INFO - Websocket connected
+2024-06-12 02:10:35,529 - INFO - Websocket connected
+2024-06-12 02:12:55,928 - INFO - Websocket connected
+2024-06-12 02:16:22,290 - INFO - Websocket connected
+2024-06-12 02:16:27,049 - INFO - Entered trade: {'signal_id': '1718158402118', 'entry_time': 1718158582.1180027, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67431.51766228907, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}

@@ -1,0 +1,4 @@
+exit_time,exit_price,candles,entry_price,result,signal_id,strategy_name,timeframe,entry_time,action,status
+,,[],,,1718158402118,SMA Crossover,120,1718158582.1180027,buy,waiting
+,,[],,,1718158547161,SMA Crossover,120,1718158727.1611662,buy,waiting
+,,[],,,1718158682071,SMA Crossover,120,1718158862.071648,buy,waiting
