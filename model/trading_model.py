@@ -172,14 +172,13 @@ class TradingModel:
 
         # Calculate sentiment index (ensure it's accessible to predict_ensemble)
         self.sentiment_index = self._calculate_sentiment_index(news_articles)
-        print(f"Overall Sentiment Index: {self.sentiment_index}")
 
         # Analyze sentiment trends
         self._analyze_sentiment_trends(news_articles)
 
         # Evaluate ALL strategies (loaded and ML-based)
         for strategy in self.strategies:
-            signal_data = strategy.evaluate(self.data_manager.price_history, self.sentiment_index)  # Pass sentiment index to strategies
+            signal_data = strategy.evaluate(self.data_manager.price_history)
 
             if signal_data is not None:
                 current_minute = int(current_time // 60)
@@ -189,9 +188,9 @@ class TradingModel:
                     continue
 
                 # Check signal generation limit
-                if self.signals_generated >= self.signal_generation_limit:
+                """if self.signals_generated >= self.signal_generation_limit:
                     print(f"Signal generation limit ({self.signal_generation_limit}) reached. Skipping signal.")
-                    continue
+                    continue"""
 
                 current_time = time.time()
                 entry_time = current_time + 180
@@ -528,3 +527,6 @@ class TradingModel:
         except FileNotFoundError:
             print("Price data file not found. Ensure 'price_data.csv' exists.")
             return None
+    def _calculate_sentiment_index(self, news_articles):
+        """Calculates the overall sentiment index from the news articles."""
+        return self.data_manager._calculate_sentiment_index(news_articles) 

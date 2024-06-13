@@ -262,3 +262,13 @@ class DataManager:
         # Assign cluster IDs to articles
         for i, article in enumerate(self.news_articles):
             article['cluster_id'] = clusters[i]
+    
+    def _calculate_sentiment_index(self, news_articles):
+        """Calculates the overall sentiment index from the news articles."""
+        total_sentiment = 0
+        for article in news_articles:
+            total_sentiment += article['sentiment']
+        if len(news_articles) > 0:
+            return total_sentiment / len(news_articles)
+        else:
+            return 0 

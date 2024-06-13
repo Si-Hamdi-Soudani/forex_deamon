@@ -19,12 +19,12 @@ TRADING_MODEL_CONFIG = {
 }
 
 # --- Main Function ---
-def main(stdscr):
+def main():
     """The main function that orchestrates the trading AI."""
     # Initialize curses
-    curses.noecho()  # Don't echo key presses
-    curses.cbreak()  # React to key presses immediately
-    stdscr.keypad(True)  # Enable arrow keys
+    # curses.noecho()  # Don't echo key presses
+    # curses.cbreak()  # React to key presses immediately
+    # stdscr.keypad(True)  # Enable arrow keys
 
     # Initialize Data Manager:
     data_mgr = data_manager.DataManager(**DATA_MANAGER_CONFIG)
@@ -50,7 +50,7 @@ def main(stdscr):
         while True:
             time.sleep(1)  # Check for new data every second
             # Display performance report
-            display_performance_report(stdscr, model)
+            #display_performance_report(stdscr, model)
 
             # Periodically train the model
             if time.time() % 600 < 1:  # Train every hour
@@ -62,9 +62,9 @@ def main(stdscr):
                 model.save_model()
                 print("Model and trade history saved.")
                             # Check for key presses
-            key = stdscr.getch()
-            if key == ord("q"):
-                break
+            # key = stdscr.getch()
+            # if key == ord("q"):
+            #     break
 
     except KeyboardInterrupt:
         print("Stopping the trading AI...")
@@ -174,5 +174,5 @@ def display_performance_report(stdscr, model, mse=None):
 
 # --- Run the AI ---
 if __name__ == "__main__":
-    curses.wrapper(main)  # Run the main function with curses
-    #main()
+    #curses.wrapper(main)  # Run the main function with curses
+    main()
