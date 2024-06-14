@@ -6,6 +6,7 @@ import pickle
 import csv
 import os
 import datetime
+import threading
 
 class CoinMarketCapWebsocketClient:
     """Connects to CoinMarketCap websocket and receives price updates."""
@@ -38,7 +39,6 @@ class CoinMarketCapWebsocketClient:
             with open(self.price_data_file, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(self.price_data_header)
-    
     def on_open(self, ws):
         """Sends the subscription message when the connection is opened."""
         ws.send(json.dumps({
@@ -69,11 +69,11 @@ class CoinMarketCapWebsocketClient:
                 with open(self.price_data_file, 'a', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow([date_time, price])
-                self._update_candlestick_data(timestamp, price)
+                threading.Thread(target=self._update_candlestick_data, args=(timestamp, price)).start()
             # Call the user-defined on_message callback
             if self.on_message_callback:
                 print("runned")
-                self.on_message_callback(message)  # Pass the parsed data
+                self.on_message_callback({"timestamp": timestamp, "price": price})  # Pass the parsed data
 
         except json.JSONDecodeError as e:
             print("json parsing error", str(e))
@@ -147,7 +147,6 @@ class CoinMarketCapWebsocketClient:
                 return pickle.load(f)
         except FileNotFoundError:
             return None
-
     def update_price_history(self, timestamp, price):
         """Updates the price history and handles checkpointing."""
 
@@ -193,11 +192,6 @@ class CoinMarketCapWebsocketClient:
                 self.candlestick_data.popleft()  # Remove the candle from the deque
                 self.current_candle_high = None
                 self.current_candle_low = None
-
-            # Wait for the start of the next minute
-            next_minute_start = datetime.datetime.now().replace(second=0, microsecond=0) + datetime.timedelta(minutes=1)
-            wait_time = (next_minute_start - datetime.datetime.now()).total_seconds()
-            time.sleep(wait_time)
 
             self.last_candle_start_time = current_minute
             self.candlestick_data.append((timestamp, price, price, price, price))  # Start a new candle

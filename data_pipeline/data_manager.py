@@ -20,6 +20,8 @@ class DataManager:
 
     def __init__(self, price_history_length=120, checkpoint_interval=60):
         """Initializes the DataManager."""
+        self.window_size = 10
+        self.features = 4
         self.price_history_length = price_history_length
         self.checkpoint_interval = checkpoint_interval
         self.data_dir = "data"  # Directory to store data files

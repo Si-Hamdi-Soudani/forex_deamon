@@ -47,10 +47,10 @@ def main():
     # Main Loop:
     try:
         while True:
-            time.sleep(1)  # Check for new data every second
+            time.sleep(60)  # Check for new data every second
             # Display performance report
             #display_performance_report(stdscr, model)
-
+            model.evaluate_and_execute_trade()
             # Periodically save the model and trade history
             if time.time() % 600 < 1:  # Save every 10 minutes
                 model.save_model_state()
