@@ -1,5 +1,6 @@
 import csv
 import os
+import pickle
 
 def save_signal_to_csv(signal, filename="signals.csv"):
     """Saves a trade signal to a CSV file.
@@ -34,3 +35,16 @@ def save_trade_to_csv(trade_data, filename="trade_history.csv"):
             writer.writeheader() 
 
         writer.writerow(trade_data)
+
+def save_object(obj, filename):
+    """Saves an object to a file using pickle."""
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f)
+
+def load_object(filename):
+    """Loads an object from a file using pickle."""
+    try:
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+    except Exception as e:
+        print("Error from FileUtils.load_object()", e)

@@ -1,7 +1,9 @@
 import collections
+import csv
 import time
 import pickle
 import os
+import numpy as np
 from sklearn.feature_selection import RFE
 from sklearn.decomposition import PCA
 from sklearn.svm import SVR
@@ -272,3 +274,65 @@ class DataManager:
             return total_sentiment / len(news_articles)
         else:
             return 0 
+    
+    def load_candlesticks(self, filename='completed_candlesticks.csv'):
+        """Loads candlestick data from a CSV file, skipping incomplete candles."""
+        try:
+            candlesticks = []
+            with open(filename, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # Check for missing data in 'Low Price' and other columns
+                    if row['Low Price'] in (None, '', 'None'):
+                        low_price = 0.0  # Default value or another handling strategy
+                    else:
+                        low_price = float(row['Low Price'])
+
+                    # Apply similar checks for 'Open Price', 'Close Price', and 'High Price'
+                    open_price = float(row['Open Price']) if row['Open Price'] not in (None, '', 'None') else 0.0
+                    close_price = float(row['Close Price']) if row['Close Price'] not in (None, '', 'None') else 0.0
+                    high_price = float(row['High Price']) if row['High Price'] not in (None, '', 'None') else 0.0
+
+                    entry_time = row['Entry Time']
+                    exit_time = row['Exit Time']
+
+                    candlesticks.append({
+                        'entry_time': entry_time,
+                        'exit_time': exit_time,
+                        'open_price': open_price,
+                        'close_price': close_price,
+                        'high_price': high_price,
+                        'low_price': low_price,
+                    })
+            return candlesticks
+        except FileNotFoundError:
+            return None
+        except Exception as e:
+            print("Load candle stick error", e)
+        
+    def preprocess_candlestick_data(self, candlesticks, window_size=10):
+        """Preprocesses candlestick data for analysis."""
+        processed_data = []
+        for i in range(window_size, len(candlesticks)):
+            # Extract features from the last 'window_size' candles
+            features = []
+            for j in range(i - window_size, i):
+                features.extend([
+                    candlesticks[j]['open_price'],
+                    candlesticks[j]['high_price'],
+                    candlesticks[j]['low_price'],
+                    candlesticks[j]['close_price'],
+                    # Add more features as needed, such as body length, shadow lengths, etc.
+                ])
+            # Normalize the features
+            features = np.array(features)
+            features = (features - np.mean(features)) / np.std(features)
+
+            # Calculate the target (price movement)
+            current_price = candlesticks[i]['close_price']
+            next_price = candlesticks[i + 1]['close_price'] if i + 1 < len(candlesticks) else current_price
+            target = 1 if next_price > current_price else 0
+
+            processed_data.append((features, target))
+
+        return processed_data

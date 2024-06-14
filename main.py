@@ -1,11 +1,10 @@
 import curses
+import datetime
+import pytz
 from data_pipeline import data_manager
 from model import trading_model
 import time
 import os
-import numpy as np
-from datetime import datetime, timedelta
-import pytz
 import pickle
 
 # --- Configuration ---
@@ -19,12 +18,12 @@ TRADING_MODEL_CONFIG = {
 }
 
 # --- Main Function ---
-def main():
+def main(stdscr):
     """The main function that orchestrates the trading AI."""
     # Initialize curses
-    # curses.noecho()  # Don't echo key presses
-    # curses.cbreak()  # React to key presses immediately
-    # stdscr.keypad(True)  # Enable arrow keys
+    curses.noecho()  # Don't echo key presses
+    curses.cbreak()  # React to key presses immediately
+    stdscr.keypad(True)  # Enable arrow keys
 
     # Initialize Data Manager:
     data_mgr = data_manager.DataManager(**DATA_MANAGER_CONFIG)
@@ -33,7 +32,8 @@ def main():
     model_file = "trading_model.pkl"
     if os.path.exists(model_file) and os.path.getsize(model_file) > 0:
         try:
-            model = trading_model.TradingModel.load_model(model_file)
+            model = trading_model.TradingModel(data_mgr)
+            model.load_model_state()
             print("Loaded existing trading model.")
         except (EOFError, pickle.UnpicklingError):
             print("Failed to load existing model. Creating a new one.")
@@ -45,26 +45,22 @@ def main():
     # Start Websocket Feed (Connect the client to the model):
     model.start_websocket_feed()
 
-    # Main Loop:
+        # Main Loop:
     try:
         while True:
             time.sleep(1)  # Check for new data every second
             # Display performance report
-            #display_performance_report(stdscr, model)
+            display_performance_report(stdscr, model)
 
-            # Periodically train the model
-            if time.time() % 600 < 1:  # Train every hour
-                print("Training the model...")
-                mse = train_model(model)  # Get MSE value from training
-
-            # Save the model and trade history periodically
+            # Periodically save the model and trade history
             if time.time() % 600 < 1:  # Save every 10 minutes
-                model.save_model()
+                model.save_model_state()
                 print("Model and trade history saved.")
-                            # Check for key presses
-            # key = stdscr.getch()
-            # if key == ord("q"):
-            #     break
+
+            # Check for key presses
+            key = stdscr.getch()
+            if key == ord("q"):
+                break
 
     except KeyboardInterrupt:
         print("Stopping the trading AI...")
@@ -74,41 +70,61 @@ def main():
         model.stop_websocket_feed()
 
         # Save the Model and Trade History:
-        model.save_model()
+        model.save_model_state()
         print("Trading model and trade history saved.")
 
-# --- Training Function ---
-def train_model(model):
-    """Trains the trading model using historical data."""
-    # Prepare training data (X: input sequences, y: target prices)
-    X = []
-    y = []
-    price_history = list(model.data_manager.price_history)
-    for i in range(len(price_history) - model.short_sma_window):
-        X.append(price_history[i : i + model.short_sma_window])
-        y.append(
-            price_history[i + model.short_sma_window][1]
-        )  # Target is the next price
-
-    if X and y:
-        # Split data into training and validation sets
-        split_ratio = 0.8
-        split_index = int(len(X) * split_ratio)
-        X_train, X_val = X[:split_index], X[split_index:]
-        y_train, y_val = y[:split_index], y[split_index:]
-
-        model.train(X_train, y_train)
-
-        # Calculate MSE on validation set
-        mse = model.model.evaluate(np.array(X_val).reshape((len(X_val), -1, 1)), np.array(y_val), verbose=0)
-        print(f"Model trained. Validation MSE: {mse}")
-        return mse  # Return the MSE value
-    else:
-        print("Not enough data to train the model.")
-        return None
-
+    
 def display_performance_report(stdscr, model, mse=None):
     """Displays a dynamic performance report of the trading model."""
+    stdscr.clear()  # Clear the screen
+    max_y, max_x = stdscr.getmaxyx() # Get terminal size
+
+    # ---- Display Report in Fixed Rows ----
+    row = 0
+    stdscr.addstr(row, 0, "----- Performance Report -----")
+    row += 1
+
+    # Model Accuracy
+    stdscr.addstr(row, 0, f"Model Accuracy: {model.accuracy:.2f}%")
+    row += 1
+
+    # Learning Progress (Example assuming Keras model)
+    if hasattr(model.model, 'history'):
+        history = model.model.history.history
+        if history:
+            stdscr.addstr(row, 0, f"Last Epoch Loss: {history['loss'][-1]:.4f}")
+            row += 1
+            stdscr.addstr(row, 0, f"Last Epoch Accuracy: {history['accuracy'][-1]:.4f}")
+            row += 1
+
+        # Trade Outcomes
+    stdscr.addstr(row, 0, "----- Trade Outcomes -----")
+    row += 1
+    if model.completed_trades:
+        total_profit = sum(trade.profit for trade in model.completed_trades)
+        win_count = sum(trade.profit > 0 for trade in model.completed_trades)
+        loss_count = len(model.completed_trades) - win_count
+        win_ratio = win_count / len(model.completed_trades) if len(model.completed_trades) > 0 else 0.0
+        stdscr.addstr(row, 0, f"Total Trades: {len(model.completed_trades)}")
+        row += 1
+        stdscr.addstr(row, 0, f"Wins: {win_count}, Losses: {loss_count}")
+        row += 1
+        stdscr.addstr(row, 0, f"Win Ratio: {win_ratio:.2f}")
+        row += 1
+        stdscr.addstr(row, 0, f"Total Profit: {total_profit:.2f}")
+        row += 1
+    else:
+        stdscr.addstr(row, 0, "No trades completed yet.")
+        row += 1
+
+    # Real-time Predictions (Example)
+    if model.predictions:
+        last_prediction = model.predictions[-1]
+        stdscr.addstr(row, 0, f"Last Prediction: {last_prediction}")
+        row += 1
+        # Compare with actual outcome if available
+
+    # Other Existing Information
     executed_trades = len(model.trade_history)
     waiting_trades = len(model.pending_signals)
     completed_trades = len(
@@ -119,13 +135,6 @@ def display_performance_report(stdscr, model, mse=None):
     )
     losing_trades = len([t for t in model.trade_history if t.get("result") == "loss"])
 
-    stdscr.clear()  # Clear the screen
-    max_y, max_x = stdscr.getmaxyx() # Get terminal size
-
-    # ---- Display Report in Fixed Rows ----
-    row = 0
-    stdscr.addstr(row, 0, "----- Performance Report -----")
-    row += 1
     stdscr.addstr(row, 0, f"Executed Trades: {executed_trades}")
     row += 1
     stdscr.addstr(row, 0, f"Waiting Trades: {waiting_trades}")
@@ -149,13 +158,14 @@ def display_performance_report(stdscr, model, mse=None):
 
     stdscr.addstr(row, 0, "-----------------------------")
     row += 2
-        # ---- Display Waiting Trades ----
+
+    # ---- Display Waiting Trades ----
     stdscr.addstr(row, 0, "----- Waiting Trades -----")
     row += 1
     for i, signal in enumerate(model.pending_signals):
         if row + i >= max_y: # Stop if we reach the bottom of the screen
             break
-        entry_time_tunisia = datetime.fromtimestamp(signal.entry_time, pytz.timezone('Africa/Tunis')).strftime('%Y-%m-%d %H:%M:%S')
+        entry_time_tunisia = datetime.datetime.fromtimestamp(signal.entry_time, pytz.timezone('Africa/Tunis')).strftime('%Y-%m-%d %H:%M:%S')
         stdscr.addstr(row + i, 0, f"Signal ID: {signal.signal_id}, Entry Time (Tunisia): {entry_time_tunisia}, Action: {signal.action}, Timeframe: {signal.timeframe}s, Strategy: {signal.strategy_name}")
     row = min(row + len(model.pending_signals) + 1, max_y - 1)
     stdscr.addstr(row, 0, "-----------------------------")
@@ -172,7 +182,6 @@ def display_performance_report(stdscr, model, mse=None):
 
     stdscr.refresh()  # Update the display
 
-# --- Run the AI ---
+
 if __name__ == "__main__":
-    #curses.wrapper(main)  # Run the main function with curses
-    main()
+    curses.wrapper(main)

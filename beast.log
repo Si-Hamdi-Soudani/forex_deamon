@@ -1,125 +1,26 @@
-2024-06-12 23:16:05,626 - INFO - Websocket connected
-2024-06-12 23:27:39,211 - INFO - Websocket connected
-2024-06-12 23:27:39,292 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 'd'
-2024-06-12 23:27:44,787 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:27:47,737 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:27:53,563 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:27:57,517 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:28:02,604 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:28:07,175 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:28:13,147 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:28:17,370 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:28:22,149 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_message of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x79f1324d1450>>: 't'
-2024-06-12 23:35:47,833 - INFO - Websocket connected
-2024-06-12 23:39:39,875 - INFO - Websocket connected
-2024-06-12 23:41:12,448 - INFO - Websocket connected
-2024-06-12 23:42:19,474 - INFO - Websocket connected
-2024-06-12 23:43:57,433 - INFO - Websocket connected
-2024-06-12 23:47:58,176 - INFO - Websocket connected
-2024-06-12 23:49:47,557 - INFO - Websocket connected
-2024-06-12 23:50:56,406 - INFO - Websocket connected
-2024-06-12 23:51:40,187 - INFO - Websocket connected
-2024-06-12 23:54:55,752 - INFO - Websocket connected
-2024-06-12 23:57:51,573 - INFO - Websocket connected
-2024-06-13 00:01:42,081 - INFO - Entered trade: {'signal_id': '1718236717475', 'entry_time': 1718236897.4751966, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 68254.72409257275, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 00:02:52,116 - INFO - Entered trade: {'signal_id': '1718236787411', 'entry_time': 1718236967.4112017, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 68191.43424012628, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 00:03:58,235 - INFO - Entered trade: {'signal_id': '1718236852869', 'entry_time': 1718237032.8691728, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 68189.00848490496, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 00:12:28,359 - INFO - Entered trade: {'signal_id': '1718237362469', 'entry_time': 1718237542.469819, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 68077.36378993685, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 00:17:22,068 - INFO - Entered trade: {'signal_id': '1718237657495', 'entry_time': 1718237837.4955294, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 68069.49985742394, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 00:20:59,107 - INFO - Websocket connected
-2024-06-13 00:21:36,771 - INFO - Websocket connected
-2024-06-13 00:24:42,265 - INFO - Entered trade: {'signal_id': '1718238098405', 'entry_time': 1718238278.4054227, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 68156.14507832186, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 00:25:47,083 - INFO - Entered trade: {'signal_id': '1718238162421', 'entry_time': 1718238342.421311, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 68169.12415463944, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 00:26:52,094 - INFO - Entered trade: {'signal_id': '1718238227438', 'entry_time': 1718238407.438402, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 68191.02378066738, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:30:49,032 - INFO - Websocket connected
-2024-06-13 07:36:52,498 - INFO - Entered trade: {'signal_id': '1718264029127', 'entry_time': 1718264209.1270897, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67667.43723408639, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:41:37,107 - INFO - Entered trade: {'signal_id': '1718264312884', 'entry_time': 1718264492.8845773, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67617.42331540203, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:46:32,103 - INFO - Entered trade: {'signal_id': '1718264607709', 'entry_time': 1718264787.7094715, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67610.64978074523, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:47:37,117 - INFO - Entered trade: {'signal_id': '1718264672513', 'entry_time': 1718264852.5139244, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67623.54898544606, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:50:37,140 - INFO - Entered trade: {'signal_id': '1718264852593', 'entry_time': 1718265032.5936432, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67652.25532765347, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:51:42,587 - INFO - Entered trade: {'signal_id': '1718264919664', 'entry_time': 1718265099.6641107, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67643.47571811386, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:53:02,126 - INFO - Entered trade: {'signal_id': '1718264997492', 'entry_time': 1718265177.4923148, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67642.65970536399, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:57:07,124 - INFO - Entered trade: {'signal_id': '1718265242594', 'entry_time': 1718265422.5947502, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67685.35685363835, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:58:12,187 - INFO - Entered trade: {'signal_id': '1718265307609', 'entry_time': 1718265487.6091948, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67696.36501677953, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 07:59:37,109 - INFO - Entered trade: {'signal_id': '1718265392651', 'entry_time': 1718265572.6516433, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67704.26343485563, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:02:17,108 - INFO - Entered trade: {'signal_id': '1718265552718', 'entry_time': 1718265732.718929, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67706.52983585109, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:06:53,392 - INFO - Entered trade: {'signal_id': '1718265832718', 'entry_time': 1718266012.7185316, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67732.90945172442, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:08:47,102 - INFO - Entered trade: {'signal_id': '1718265942547', 'entry_time': 1718266122.5476084, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67736.89874680027, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:09:48,408 - INFO - Entered trade: {'signal_id': '1718266003825', 'entry_time': 1718266183.8250077, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67730.67312396092, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:11:47,099 - INFO - Entered trade: {'signal_id': '1718266122543', 'entry_time': 1718266302.5435476, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67713.40372184603, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:19:47,105 - INFO - Entered trade: {'signal_id': '1718266602600', 'entry_time': 1718266782.6005683, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67648.4987468475, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:21:47,978 - INFO - Entered trade: {'signal_id': '1718266723122', 'entry_time': 1718266903.122587, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67648.93289488895, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:33:04,482 - INFO - Websocket connected
-2024-06-13 08:50:52,236 - INFO - Websocket connected
-2024-06-13 08:55:37,158 - INFO - Entered trade: {'signal_id': '1718268752433', 'entry_time': 1718268932.433781, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67587.32714891533, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:56:42,113 - INFO - Entered trade: {'signal_id': '1718268817461', 'entry_time': 1718268997.461522, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67591.00127913682, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 08:58:07,198 - INFO - Entered trade: {'signal_id': '1718268902513', 'entry_time': 1718269082.5136364, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67571.51837612974, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:02:52,112 - INFO - Entered trade: {'signal_id': '1718269187436', 'entry_time': 1718269367.4360332, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67554.64441316474, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:05:02,108 - INFO - Entered trade: {'signal_id': '1718269318067', 'entry_time': 1718269498.0673773, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67555.6613983193, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:10:00,513 - INFO - Websocket connected
-2024-06-13 09:10:07,225 - INFO - Entered trade: {'signal_id': '1718269623766', 'entry_time': 1718269803.7665882, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67518.35623630084, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:11:37,087 - INFO - Entered trade: {'signal_id': '1718269712612', 'entry_time': 1718269892.6126764, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67517.068379077, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:15:42,619 - INFO - Entered trade: {'signal_id': '1718269959341', 'entry_time': 1718270139.3411057, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67505.7243351324, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:17:32,083 - INFO - Entered trade: {'signal_id': '1718270067818', 'entry_time': 1718270247.8180597, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67493.93734829161, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:20:02,105 - INFO - Entered trade: {'signal_id': '1718270217413', 'entry_time': 1718270397.413184, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67468.28769197663, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:26:47,096 - INFO - Entered trade: {'signal_id': '1718270622523', 'entry_time': 1718270802.5232801, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67358.9423135135, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:31:27,568 - INFO - Entered trade: {'signal_id': '1718270902530', 'entry_time': 1718271082.5309932, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67349.86771781227, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:32:32,092 - INFO - Entered trade: {'signal_id': '1718270967514', 'entry_time': 1718271147.5140529, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67294.58747926353, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:36:37,460 - INFO - Entered trade: {'signal_id': '1718271213034', 'entry_time': 1718271393.0344448, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67310.26558882998, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:37:42,079 - INFO - Entered trade: {'signal_id': '1718271278071', 'entry_time': 1718271458.0718322, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67318.81854825128, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:44:17,090 - INFO - Entered trade: {'signal_id': '1718271673119', 'entry_time': 1718271853.1191223, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67221.20447434673, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:46:08,011 - INFO - Entered trade: {'signal_id': '1718271782544', 'entry_time': 1718271962.5448236, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67229.96478984383, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:48:02,457 - INFO - Websocket connected
-2024-06-13 09:48:07,160 - INFO - Entered trade: {'signal_id': '1718269623766', 'entry_time': 1718269803.7665882, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67271.96363447235, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:48:14,808 - INFO - Entered trade: {'signal_id': '1718269712612', 'entry_time': 1718269892.6126764, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67264.8100087505, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:53:57,087 - INFO - Entered trade: {'signal_id': '1718272252495', 'entry_time': 1718272432.4954615, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67326.14461323601, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:54:57,690 - INFO - Entered trade: {'signal_id': '1718272314662', 'entry_time': 1718272494.6627543, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67333.85337000262, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 09:56:02,105 - INFO - Entered trade: {'signal_id': '1718272377863', 'entry_time': 1718272557.8637166, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67338.81452171244, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:00:07,173 - INFO - Entered trade: {'signal_id': '1718272622476', 'entry_time': 1718272802.4765947, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67415.5095697905, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:01:07,232 - INFO - Entered trade: {'signal_id': '1718272683359', 'entry_time': 1718272863.359602, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67416.26059244943, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:02:12,094 - INFO - Entered trade: {'signal_id': '1718272747888', 'entry_time': 1718272927.8881767, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67405.80683314143, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:05:42,581 - INFO - Websocket connected
-2024-06-13 10:05:58,101 - INFO - Websocket connected
-2024-06-13 10:10:11,012 - INFO - Websocket connected
-2024-06-13 10:10:12,119 - INFO - Entered trade: {'signal_id': '1718272992612', 'entry_time': 1718273172.6123166, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67350.45753752429, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:14:00,459 - INFO - Websocket connected
-2024-06-13 10:14:02,126 - INFO - Entered trade: {'signal_id': '1718272992612', 'entry_time': 1718273172.6123166, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67270.1345246489, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:14:59,183 - INFO - Websocket connected
-2024-06-13 10:15:02,218 - INFO - Entered trade: {'signal_id': '1718272992612', 'entry_time': 1718273172.6123166, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67287.95836590735, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:15:26,885 - INFO - Websocket connected
-2024-06-13 10:15:27,990 - INFO - Entered trade: {'signal_id': '1718272992612', 'entry_time': 1718273172.6123166, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67256.80201150238, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:16:46,215 - INFO - Websocket connected
-2024-06-13 10:21:44,520 - INFO - Entered trade: {'signal_id': '1718273922548', 'entry_time': 1718274102.5484903, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67335.42848337299, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:23:07,176 - INFO - Entered trade: {'signal_id': '1718274002505', 'entry_time': 1718274182.5058403, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67350.89379694882, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:24:12,854 - INFO - Entered trade: {'signal_id': '1718274067628', 'entry_time': 1718274247.6284516, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67356.68603690312, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:25:52,177 - INFO - Entered trade: {'signal_id': '1718274168195', 'entry_time': 1718274348.195928, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67357.90925702237, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:26:18,761 - INFO - Websocket connected
-2024-06-13 10:30:57,329 - INFO - Entered trade: {'signal_id': '1718274472902', 'entry_time': 1718274652.9021852, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67362.45471118884, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:33:07,202 - INFO - Entered trade: {'signal_id': '1718274602492', 'entry_time': 1718274782.4927943, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67376.56817855456, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:35:37,187 - INFO - Entered trade: {'signal_id': '1718274752481', 'entry_time': 1718274932.4813256, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67380.21091159276, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:37:00,481 - INFO - Websocket connected
-2024-06-13 10:37:43,491 - INFO - Websocket connected
-2024-06-13 10:37:47,135 - INFO - Entered trade: {'signal_id': '1718274872524', 'entry_time': 1718275052.5241194, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67374.47105261618, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:48:16,603 - INFO - Websocket connected
-2024-06-13 10:48:24,376 - INFO - Entered trade: {'signal_id': '1718275002747', 'entry_time': 1718275182.7475986, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67580.75752225661, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:52:17,527 - INFO - Websocket connected
-2024-06-13 10:52:27,098 - INFO - Entered trade: {'signal_id': '1718275002747', 'entry_time': 1718275182.7475986, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67662.38823553237, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 10:54:14,914 - INFO - Websocket connected
-2024-06-13 10:54:17,097 - INFO - Entered trade: {'signal_id': '1718275002747', 'entry_time': 1718275182.7475986, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67733.88715419783, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 11:09:11,469 - INFO - Websocket connected
-2024-06-13 11:09:14,857 - INFO - Entered trade: {'signal_id': '1718275002747', 'entry_time': 1718275182.7475986, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67839.3967569542, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 11:55:16,347 - INFO - Websocket connected
-2024-06-13 12:03:22,980 - INFO - Websocket connected
-2024-06-13 12:06:57,398 - INFO - Entered trade: {'signal_id': '1718280233409', 'entry_time': 1718280413.409871, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67788.68563456515, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:13:17,095 - INFO - Entered trade: {'signal_id': '1718280612525', 'entry_time': 1718280792.5254679, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67769.01526467512, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:14:42,118 - INFO - Entered trade: {'signal_id': '1718280697507', 'entry_time': 1718280877.5072725, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67835.07788728079, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:17:22,125 - INFO - Entered trade: {'signal_id': '1718280857510', 'entry_time': 1718281037.5106235, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67815.12400132629, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:19:27,085 - INFO - Entered trade: {'signal_id': '1718280982499', 'entry_time': 1718281162.4993849, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67762.54594738483, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:24:18,828 - INFO - Entered trade: {'signal_id': '1718281277509', 'entry_time': 1718281457.5090847, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67821.32116132508, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:25:27,088 - INFO - Entered trade: {'signal_id': '1718281342590', 'entry_time': 1718281522.5901814, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67834.57607006532, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:29:47,082 - INFO - Entered trade: {'signal_id': '1718281602504', 'entry_time': 1718281782.5041199, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67846.70826901437, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:34:52,108 - INFO - Entered trade: {'signal_id': '1718281907970', 'entry_time': 1718282087.9704225, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 68073.3130583343, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:37:47,086 - INFO - Entered trade: {'signal_id': '1718282082542', 'entry_time': 1718282262.5427139, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 68037.452412034, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:39:24,380 - INFO - Entered trade: {'signal_id': '1718282182906', 'entry_time': 1718282362.9064965, 'action': 'sell', 'timeframe': 60, 'strategy_name': 'RSI Overbought', 'status': 'active', 'entry_price': 67894.87437565181, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:45:42,293 - INFO - Entered trade: {'signal_id': '1718282558400', 'entry_time': 1718282738.4000976, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67740.3464135752, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
-2024-06-13 12:48:14,479 - INFO - Entered trade: {'signal_id': '1718282712607', 'entry_time': 1718282892.6076162, 'action': 'buy', 'timeframe': 120, 'strategy_name': 'SMA Crossover', 'status': 'active', 'entry_price': 67786.88572759258, 'exit_time': None, 'exit_price': None, 'result': None, 'candles': []}
+2024-06-13 20:59:18,346 - INFO - Websocket connected
+2024-06-13 21:00:46,473 - INFO - Websocket connected
+2024-06-13 21:02:10,483 - INFO - Websocket connected
+2024-06-13 21:03:28,257 - INFO - Websocket connected
+2024-06-13 21:04:23,640 - INFO - Websocket connected
+2024-06-13 21:05:12,635 - INFO - Websocket connected
+2024-06-13 21:05:33,613 - INFO - Websocket connected
+2024-06-13 21:06:00,005 - ERROR - Websocket error: ping/pong timed out
+2024-06-13 21:06:00,005 - ERROR - ping/pong timed out - goodbye
+2024-06-13 21:06:00,081 - INFO - Websocket connection closed with code: None, message: None
+2024-06-13 21:06:05,343 - INFO - Websocket connected
+2024-06-13 21:10:31,055 - INFO - Websocket connected
+2024-06-13 21:11:43,493 - INFO - Websocket connected
+2024-06-13 21:14:09,171 - INFO - Websocket connected
+2024-06-14 17:39:59,843 - INFO - Websocket connected
+2024-06-14 17:39:59,846 - ERROR - error from callback <bound method CoinMarketCapWebsocketClient.on_open of <data_pipeline.websocket_client.CoinMarketCapWebsocketClient object at 0x7e66fe5c1180>>: Connection is already closed.
+2024-06-14 17:39:59,846 - ERROR - Websocket error: Connection is already closed.
+2024-06-14 17:39:59,846 - ERROR - Websocket error: 'NoneType' object has no attribute 'sock'
+2024-06-14 17:39:59,846 - ERROR - 'NoneType' object has no attribute 'sock' - goodbye
+2024-06-14 17:39:59,847 - INFO - Websocket connection closed with code: None, message: None
+2024-06-14 17:40:05,126 - INFO - Websocket connected
+2024-06-14 17:41:21,220 - INFO - Websocket connected
+2024-06-14 17:42:00,038 - ERROR - Websocket error: ping/pong timed out
+2024-06-14 17:42:00,038 - ERROR - ping/pong timed out - goodbye
+2024-06-14 17:42:00,115 - INFO - Websocket connection closed with code: None, message: None
+2024-06-14 17:42:05,391 - INFO - Websocket connected

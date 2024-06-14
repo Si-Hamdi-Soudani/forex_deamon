@@ -50,9 +50,6 @@ class CoinMarketCapWebsocketClient:
         }))
 
     def on_message(self, ws, message):
-        """Handles incoming websocket messages, accumulating fragments until a complete JSON is received."""
-        self.message_buffer += message
-        # Attempt to parse the buffer as JSON
         try:
             data = json.loads(message)
 
@@ -74,14 +71,14 @@ class CoinMarketCapWebsocketClient:
                     writer.writerow([date_time, price])
                 self._update_candlestick_data(timestamp, price)
             # Call the user-defined on_message callback
-            if self.on_message_callback:
-                self.on_message_callback(message)  # Pass the parsed data
+            #if self.on_message_callback:
+                #self.on_message_callback(message)  # Pass the parsed data
 
-        except json.JSONDecodeError:
-            print("json parsing error")
-            pass
+        except json.JSONDecodeError as e:
+            print("json parsing error", str(e))
         except Exception as e:
-            print("Error", e)
+            print("Error here", str(e))
+           
 
     def on_error(self, ws, error):
         """Handles websocket errors."""
@@ -187,26 +184,27 @@ class CoinMarketCapWebsocketClient:
 
     def _update_candlestick_data(self, timestamp, price):
         """Updates the candlestick data for the 1-minute timeframe."""
+        # Align candle start times
         current_minute = datetime.datetime.fromtimestamp(timestamp).minute
         if self.last_candle_start_time is None or current_minute != self.last_candle_start_time:
+            # New minute has begun, save the previous candle (if it exists)
             if self.candlestick_data:
-                # Ensure the candle has all necessary elements
-                last_candle = self.candlestick_data[-1]
-                completed_candle = (
-                    last_candle[0],  # Entry Time
-                    last_candle[1],  # Open Price
-                    self.current_candle_high if self.current_candle_high else last_candle[1],  # High Price
-                    self.current_candle_low if self.current_candle_low else last_candle[1],  # Low Price
-                    last_candle[3]  # Close Price, assuming the last price is the close price
-                )
-                self._save_completed_candlestick(completed_candle)
-                self.candlestick_data.clear()
+                self._save_completed_candlestick(self.candlestick_data[-1])  # Pass the current candle to the save function before removal
+                self.candlestick_data.popleft()  # Remove the candle from the deque
+                self.current_candle_high = None
+                self.current_candle_low = None
+
+            # Wait for the start of the next minute
+            next_minute_start = datetime.datetime.now().replace(second=0, microsecond=0) + datetime.timedelta(minutes=1)
+            wait_time = (next_minute_start - datetime.datetime.now()).total_seconds()
+            time.sleep(wait_time)
 
             self.last_candle_start_time = current_minute
+            self.candlestick_data.append((timestamp, price, price, price, price))  # Start a new candle
+
+            # Update high and low prices for the current candle
             self.current_candle_high = price
             self.current_candle_low = price
-            # Reset for a new candle
-            self.candlestick_data.append((timestamp, price, price, price, price))
         else:
             # Update the current candle with new high, low, and close prices
             last_candle = self.candlestick_data[-1]
@@ -214,7 +212,7 @@ class CoinMarketCapWebsocketClient:
             self.current_candle_low = min(self.current_candle_low, price)
             # Update the candle in the deque
             self.candlestick_data[-1] = (
-                last_candle[0],  # Entry Time
+                last_candle[0],  # Open time
                 last_candle[1],  # Open Price
                 self.current_candle_high,  # High Price
                 self.current_candle_low,  # Low Price
