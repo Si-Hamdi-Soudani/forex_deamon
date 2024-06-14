@@ -18,12 +18,12 @@ TRADING_MODEL_CONFIG = {
 }
 
 # --- Main Function ---
-def main(stdscr):
+def main():
     """The main function that orchestrates the trading AI."""
     # Initialize curses
-    curses.noecho()  # Don't echo key presses
-    curses.cbreak()  # React to key presses immediately
-    stdscr.keypad(True)  # Enable arrow keys
+    # curses.noecho()  # Don't echo key presses
+    # curses.cbreak()  # React to key presses immediately
+    # stdscr.keypad(True)  # Enable arrow keys
 
     # Initialize Data Manager:
     data_mgr = data_manager.DataManager(**DATA_MANAGER_CONFIG)
@@ -41,16 +41,15 @@ def main(stdscr):
     else:
         model = trading_model.TradingModel(data_mgr, **TRADING_MODEL_CONFIG)
         print("Created a new trading model.")
-
     # Start Websocket Feed (Connect the client to the model):
     model.start_websocket_feed()
 
-        # Main Loop:
+    # Main Loop:
     try:
         while True:
             time.sleep(1)  # Check for new data every second
             # Display performance report
-            display_performance_report(stdscr, model)
+            #display_performance_report(stdscr, model)
 
             # Periodically save the model and trade history
             if time.time() % 600 < 1:  # Save every 10 minutes
@@ -58,9 +57,9 @@ def main(stdscr):
                 print("Model and trade history saved.")
 
             # Check for key presses
-            key = stdscr.getch()
-            if key == ord("q"):
-                break
+            # key = stdscr.getch()
+            # if key == ord("q"):
+            #     break
 
     except KeyboardInterrupt:
         print("Stopping the trading AI...")
@@ -73,7 +72,7 @@ def main(stdscr):
         model.save_model_state()
         print("Trading model and trade history saved.")
 
-    
+
 def display_performance_report(stdscr, model, mse=None):
     """Displays a dynamic performance report of the trading model."""
     stdscr.clear()  # Clear the screen
@@ -96,7 +95,6 @@ def display_performance_report(stdscr, model, mse=None):
             row += 1
             stdscr.addstr(row, 0, f"Last Epoch Accuracy: {history['accuracy'][-1]:.4f}")
             row += 1
-
         # Trade Outcomes
     stdscr.addstr(row, 0, "----- Trade Outcomes -----")
     row += 1
@@ -116,8 +114,7 @@ def display_performance_report(stdscr, model, mse=None):
     else:
         stdscr.addstr(row, 0, "No trades completed yet.")
         row += 1
-
-    # Real-time Predictions (Example)
+        # Real-time Predictions (Example)
     if model.predictions:
         last_prediction = model.predictions[-1]
         stdscr.addstr(row, 0, f"Last Prediction: {last_prediction}")
@@ -150,8 +147,7 @@ def display_performance_report(stdscr, model, mse=None):
     if mse is not None:
         stdscr.addstr(row, 0, f"Model Validation MSE: {mse:.4f}")
     row += 1
-
-    # Display Websocket Status
+        # Display Websocket Status
     websocket_status = "Connected" if model.websocket_connected else "Disconnected"
     stdscr.addstr(row, 0, f"Websocket: {websocket_status}")
     row += 1 
@@ -183,5 +179,6 @@ def display_performance_report(stdscr, model, mse=None):
     stdscr.refresh()  # Update the display
 
 
+
 if __name__ == "__main__":
-    curses.wrapper(main)
+    main()

@@ -24,7 +24,7 @@ class CoinMarketCapWebsocketClient:
         self.ws = None
         self.connected = False
         self.price_data_file = "price_data.csv"  # File to store price data
-        self.price_data_header = ['Date', 'Close']  
+        self.price_data_header = ['Date', 'Price']  # Update the header to 'Price'
         self.message_buffer = ""
         self.symbol = symbol
         self.candlestick_data = collections.deque(maxlen=120)
@@ -38,7 +38,7 @@ class CoinMarketCapWebsocketClient:
             with open(self.price_data_file, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(self.price_data_header)
-
+    
     def on_open(self, ws):
         """Sends the subscription message when the connection is opened."""
         ws.send(json.dumps({
@@ -52,7 +52,7 @@ class CoinMarketCapWebsocketClient:
     def on_message(self, ws, message):
         try:
             data = json.loads(message)
-
+            print(message)
             # Reset the buffer if parsing is successful
             self.message_buffer = ""
             timestamp = 0
@@ -71,14 +71,14 @@ class CoinMarketCapWebsocketClient:
                     writer.writerow([date_time, price])
                 self._update_candlestick_data(timestamp, price)
             # Call the user-defined on_message callback
-            #if self.on_message_callback:
-                #self.on_message_callback(message)  # Pass the parsed data
+            if self.on_message_callback:
+                print("runned")
+                self.on_message_callback(message)  # Pass the parsed data
 
         except json.JSONDecodeError as e:
             print("json parsing error", str(e))
         except Exception as e:
             print("Error here", str(e))
-           
 
     def on_error(self, ws, error):
         """Handles websocket errors."""
@@ -251,5 +251,3 @@ class CoinMarketCapWebsocketClient:
                         "Low Price",
                     ]
                 )
-
-    # ... (Your existing methods) ...

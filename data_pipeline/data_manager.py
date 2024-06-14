@@ -50,6 +50,7 @@ class DataManager:
             self._train_word2vec_model()
             self.save_word2vec_model()
 
+
     def save_data(self, data, filename):
         """Saves data to a pickle file."""
         os.makedirs(self.data_dir, exist_ok=True)  # Create data directory if it doesn't exist
@@ -60,31 +61,31 @@ class DataManager:
         """Fetches news articles from Binance."""
         url = "https://www.binance.com/bapi/composite/v3/friendly/pgc/feed/news/list"
         headers = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Bnc-Uuid": "REPLACE_WITH_YOUR_BNC_UUID", # Replace with your actual Bnc-Uuid value
-        "Clienttype": "web",
-        "Content-Type": "application/json",
-        "Cookie": "REPLACE_WITH_YOUR_COOKIE_STRING", # Replace with your actual Cookie string
-        "Csrftoken": "REPLACE_WITH_YOUR_CSRFTOKEN", # Replace with your actual Csrftoken value
-        "Device-Info": "REPLACE_WITH_YOUR_DEVICE_INFO", # Replace with your actual Device-Info value
-        "Fvideo-Id": "REPLACE_WITH_YOUR_FVIDEO_ID", # Replace with your actual Fvideo-Id value
-        "Fvideo-Token": "REPLACE_WITH_YOUR_FVIDEO_TOKEN", # Replace with your actual Fvideo-Token value
-        "Lang": "en",
-        "Origin": "https://www.binance.com",
-        "Referer": "https://www.binance.com/en/support/faq/c97c9bc9f5894e398610c4a8317b6f2e",
-        "Sec-Ch-Ua": "\"Opera GX\";v=\"109\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": "\"Windows\"",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OPR/109.0.0.0",
-        "X-Passthrough-Token": "REPLACE_WITH_YOUR_X_PASSTHROUGH_TOKEN", # Replace with your actual X-Passthrough-Token value
-        "X-Trace-Id": "REPLACE_WITH_YOUR_X_TRACE_ID", # Replace with your actual X-Trace-Id value
-        "X-Ui-Request-Trace": "REPLACE_WITH_YOUR_X_UI_REQUEST_TRACE" # Replace with your actual X-Ui-Request-Trace value
-    }
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Bnc-Uuid": "REPLACE_WITH_YOUR_BNC_UUID", # Replace with your actual Bnc-Uuid value
+            "Clienttype": "web",
+            "Content-Type": "application/json",
+            "Cookie": "REPLACE_WITH_YOUR_COOKIE_STRING", # Replace with your actual Cookie string
+            "Csrftoken": "REPLACE_WITH_YOUR_CSRFTOKEN", # Replace with your actual Csrftoken value
+            "Device-Info": "REPLACE_WITH_YOUR_DEVICE_INFO", # Replace with your actual Device-Info value
+            "Fvideo-Id": "REPLACE_WITH_YOUR_FVIDEO_ID", # Replace with your actual Fvideo-Id value
+            "Fvideo-Token": "REPLACE_WITH_YOUR_FVIDEO_TOKEN", # Replace with your actual Fvideo-Token value
+            "Lang": "en",
+            "Origin": "https://www.binance.com",
+            "Referer": "https://www.binance.com/en/support/faq/c97c9bc9f5894e398610c4a8317b6f2e",
+            "Sec-Ch-Ua": "\"Opera GX\";v=\"109\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": "\"Windows\"",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OPR/109.0.0.0",
+            "X-Passthrough-Token": "REPLACE_WITH_YOUR_X_PASSTHROUGH_TOKEN", # Replace with your actual X-Passthrough-Token value
+            "X-Trace-Id": "REPLACE_WITH_YOUR_X_TRACE_ID", # Replace with your actual X-Trace-Id value
+            "X-Ui-Request-Trace": "REPLACE_WITH_YOUR_X_UI_REQUEST_TRACE" # Replace with your actual X-Ui-Request-Trace value
+        }
         data = {
             "featured": False,
             "pageIndex": 1,
@@ -127,9 +128,9 @@ class DataManager:
             "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cookie": 'AKA_A2=A; SLG_G_WPT_TO=fr; SLG_GWPT_Show_Hide_tmp=1; SLG_wptGlobTipTmp=1; _pbjs_userid_consent_data=3524755945110770; CookieConsent={stamp:%27qN6TsRPf8KdqtdKYMvZYVgnSNR3HybnxHSu9KT/l18X0sNu7MLp1Bw==%27%2Cnecessary:true%2Cpreferences:false%2Cstatistics:false%2Cmarketing:false%2Cmethod:%27explicit%27%2Cver:8%2Cutc:1718189211579%2Cregion:%27tn%27}; __gads=ID=ac611b876c6d27de:T=1718188180:RT=1718190966:S=ALNI_MZDMh6Ff1EaEEky5cVvocMyUMwSiQ; __gpi=UID=00000d83c0f6bd67:T=1718188180:RT=1718190966:S=ALNI_MaSuXdweNUdetNo36WiRE3HeMIr5w; __eoi=ID=e78b328636dc16c3:T=1718188180:RT=1718190966:S=AA-AfjbJ9YgF-lKfAfixg8De5f_F',
             "Referer": "https://www.coindesk.com/livewire/",
-            "Sec-Ch-Ua": '"Opera GX";v="109", "Not:A-Brand";v="8", "Chromium";v="123"',
+            "Sec-Ch-Ua": '\"Opera GX\";v=\"109\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"',
             "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Sec-Ch-Ua-Platform": '\"Windows\"',
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
@@ -163,10 +164,6 @@ class DataManager:
         else:
             print(f"Coindesk API Error: {response.status_code}")
             print(f"Error Message: {response.text}")
-
-    def get_news_articles(self):
-        """Returns the fetched news articles."""
-        return self.news_articles
 
     def load_data(self, filename):
         """Loads data from a pickle file."""
@@ -228,7 +225,7 @@ class DataManager:
         pca = PCA(n_components=n_components)
         X_reduced = pca.fit_transform(X)
         return X_reduced
-
+    
     def _train_word2vec_model(self):
         """Trains a Word2Vec model using the collected news articles."""
         sentences = [article['content'].split() for article in self.news_articles]
@@ -274,7 +271,7 @@ class DataManager:
             return total_sentiment / len(news_articles)
         else:
             return 0 
-    
+        
     def load_candlesticks(self, filename='completed_candlesticks.csv'):
         """Loads candlestick data from a CSV file, skipping incomplete candles."""
         try:
@@ -308,8 +305,8 @@ class DataManager:
         except FileNotFoundError:
             return None
         except Exception as e:
-            print("Load candle stick error", e)
-        
+            print("Load candlestick error", e)
+
     def preprocess_candlestick_data(self, candlesticks, window_size=10):
         """Preprocesses candlestick data for analysis."""
         processed_data = []
@@ -336,3 +333,6 @@ class DataManager:
             processed_data.append((features, target))
 
         return processed_data
+    def get_news_articles(self):
+        """Returns the fetched news articles."""
+        return self.news_articles

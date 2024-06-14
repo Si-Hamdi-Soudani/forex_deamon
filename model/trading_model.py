@@ -23,6 +23,7 @@ from backtrader.analyzers import SharpeRatio, DrawDown, AnnualReturn
 from backtrader.cerebro import Cerebro
 from collections import deque 
 import datetime
+import csv
 
 def ml_strategy_condition(price_data):
     """Condition for ML-based strategy."""
@@ -121,6 +122,7 @@ class TradingModel:
         self.actual_outcomes = []
         self.accuracy = 0.0
         self.completed_trades = []
+        self.completed_candlesticks_file = "completed_candlesticks.csv"
 
     def start_websocket_feed(self):
         """Starts the websocket client in a separate thread."""
@@ -222,7 +224,7 @@ class TradingModel:
         self.predictions = []
         self.actual_outcomes = []
         self.accuracy = 0.0
-    
+
     def save_strategies(self):
         """Saves the trading strategies to files."""
         for strategy in self.strategies:
@@ -254,13 +256,13 @@ class TradingModel:
             predictions.append(prediction)
         # Combine predictions (e.g., majority voting)
         return predictions[0]
-
+    
     def predict_price_movement(self, features, cluster_id):
         """Predicts the price movement (up or down) based on the identified pattern."""
         model = self.prediction_models[cluster_id]
         prediction = model.predict(features)
         return prediction[0]
-    
+
     def evaluate_and_execute_trade(self):
         """Evaluates trading strategies and executes trades based on signals."""
         current_time = time.time()
@@ -393,7 +395,7 @@ class TradingModel:
             model.fit(features, targets)
             self.prediction_models[cluster_id] = model
         print("Prediction models trained!")
-    
+
     def determine_timeframe(self, cluster_id, features):
         """Determines the optimal timeframe for a trade based on historical data."""
         # Analyze historical data for this cluster to find the average duration of price movements
@@ -473,7 +475,6 @@ class TradingModel:
 
         return signals
     
-
     def optimize_parameters(self):
         """Optimizes parameters based on backtest results."""
         # Define the search space for hyperparameters
@@ -506,7 +507,7 @@ class TradingModel:
         self.timeframe_multiplier = best_params['timeframe_multiplier']
 
         print(f"Optimized parameters: {best_params}")
-    
+
     def calculate_rsi(self, prices, period=14):
         """Calculates the Relative Strength Index (RSI)."""
         delta = prices.diff()
@@ -526,7 +527,6 @@ class TradingModel:
         macdsignal = macd.rolling(window=signalperiod).mean()
         macdhist = macd - macdsignal
         return macd, macdsignal, macdhist
-    
 
     def report_progress(self):
         """Reports the model's progress and statistics."""
@@ -567,6 +567,56 @@ class TradingModel:
         else:
             print("No trades completed yet.")
 
-    def add_trade(self, trade):
-        """Adds a completed trade to the trade history."""
-        self.completed_trades.append(trade)
+    def _update_candlestick_data(self, timestamp, price):
+        """Updates the candlestick data for the 1-minute timeframe."""
+        # Align candle start times
+        current_minute = datetime.datetime.fromtimestamp(timestamp).minute
+        if self.last_candle_start_time is None or current_minute != self.last_candle_start_time:
+            # New minute has begun, save the previous candle (if it exists)
+            if self.candlestick_data:
+                self._save_completed_candlestick(self.candlestick_data[-1])  # Pass the current candle to the save function before removal
+                self.candlestick_data.popleft()  # Remove the candle from the deque
+                self.current_candle_high = None
+                self.current_candle_low = None
+
+            # Wait for the start of the next minute
+            next_minute_start = datetime.datetime.now().replace(second=0, microsecond=0) + datetime.timedelta(minutes=1)
+            wait_time = (next_minute_start - datetime.datetime.now()).total_seconds()
+            time.sleep(wait_time)
+
+            self.last_candle_start_time = current_minute
+            self.candlestick_data.append((timestamp, price, price, price, price))  # Start a new candle
+
+            # Update high and low prices for the current candle
+            self.current_candle_high = price
+            self.current_candle_low = price
+        else:
+            # Update the current candle with new high, low, and close prices
+            last_candle = self.candlestick_data[-1]
+            self.current_candle_high = max(self.current_candle_high, price)
+            self.current_candle_low = min(self.current_candle_low, price)
+            # Update the candle in the deque
+            self.candlestick_data[-1] = (
+                last_candle[0],  # Open time
+                last_candle[1],  # Open Price
+                self.current_candle_high,  # High Price
+                self.current_candle_low,  # Low Price
+                price  # Close Price
+            )
+
+    def _save_completed_candlestick(self, candle):
+        """Saves a completed candlestick to the CSV file."""
+        entry_time, open_price, high_price, low_price, close_price = candle
+        exit_time = entry_time + 60  # Exit time is 1 minute after entry
+        with open(self.completed_candlesticks_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                [
+                    datetime.datetime.fromtimestamp(entry_time).strftime('%Y-%m-%d %H:%M:%S'),
+                    datetime.datetime.fromtimestamp(exit_time).strftime('%Y-%m-%d %H:%M:%S'),
+                    open_price,
+                    close_price,
+                    high_price,
+                    low_price,
+                ]
+            )
