@@ -24,6 +24,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import defaultdict, deque
+import collections
 import pandas as pd  # Import pandas for data loading
 import tensorflow as tf
 from sklearn.cluster import KMeans, DBSCAN  # Import DBSCAN
@@ -105,7 +106,7 @@ class TradingEnvironment(gym.Env):
     def reset(self):
         """Resets the environment to its initial state."""
         self.current_step = self.window_size
-        self.current_price = self.data_manager.price_history[self.current_step]['close_price']  # Use 'close_price'
+        self.current_price = self.data_manager.price_history[self.current_step][1]  # Use index 1 for price
         self.position = None
         self.balance = 10000
         return self._get_observation()
@@ -113,7 +114,7 @@ class TradingEnvironment(gym.Env):
     def step(self, action):
         """Takes a step in the environment based on the agent's action."""
         self.current_step += 1
-        self.current_price = self.data_manager.price_history[self.current_step]['close_price']  # Use 'close_price'
+        self.current_price = self.data_manager.price_history[self.current_step][1]  # Use index 1 for price
 
         reward = 0
         if action == 1 and self.position is None:  # Buy
@@ -125,9 +126,9 @@ class TradingEnvironment(gym.Env):
 
         # Calculate reward based on position and price change
         if self.position == "long":
-            reward = self.current_price - self.data_manager.price_history[self.current_step - 1]['close_price']  # Use 'close_price'
+            reward = self.current_price - self.data_manager.price_history[self.current_step - 1][1]  # Use index 1 for price
         elif self.position == "short":
-            reward = self.data_manager.price_history[self.current_step - 1]['close_price'] - self.current_price  # Use 'close_price'
+            reward = self.data_manager.price_history[self.current_step - 1][1] - self.current_price  # Use index 1 for price
 
         done = self.current_step == len(self.data_manager.price_history) - 1
 
@@ -135,7 +136,9 @@ class TradingEnvironment(gym.Env):
 
     def _get_observation(self):
         """Returns the current observation (price history)."""
-        return np.array([candle['close_price'] for candle in self.data_manager.price_history[self.current_step - self.window_size:self.current_step]])  # Use 'close_price'
+        # Ensure price_history is a list before slicing
+        price_history = list(self.data_manager.price_history)
+        return np.array([candle[1] for candle in price_history[self.current_step - self.window_size:self.current_step]])  # Use index 1 for price
     
 
 class BacktestStrategy(bt.Strategy):
@@ -371,10 +374,10 @@ class TradingModel:
             self.websocket_connected = False
 
     def on_price_update(self, completed_candle):
-        """Handles incoming price updates from the websocket."""
-        if completed_candle:
-            self.data_manager.price_history.append(completed_candle) 
-            self.evaluate_and_execute_trade()
+       """Handles incoming price updates from the websocket."""
+       if completed_candle:
+           self.data_manager.price_history.append(completed_candle)
+           self.evaluate_and_execute_trade() 
 
     def on_error(self, error):
         """Handles errors from the websocket client."""
@@ -465,6 +468,9 @@ class TradingModel:
             self.process_pending_signals()
             return  # Exit to avoid generating new signals while processing pending ones
 
+        # Close any open position before generating a new trading signal
+        self.close_open_position()
+
         # Generate a new trading signal
         self.generate_trading_signal()
 
@@ -479,89 +485,130 @@ class TradingModel:
 
     def generate_trading_signal(self):
         """Generates a trading signal based on the selected strategy."""
-        # Check if enough time has passed since the last strategy generation
-        if time.time() - self.last_strategy_generation_time < 3600:  # 1 hour cooldown
-            return
+        try:
+            # Check if enough time has passed since the last strategy generation
+            if time.time() - self.last_strategy_generation_time < 3600:  # 1 hour cooldown
+                return
 
-        # Reset the signal counter
-        self.signals_generated = 0
+            # Reset the signal counter
+            self.signals_generated = 0
 
-        # Get the latest price from the data manager
-        latest_price = self.data_manager.price_history[-1]['close_price']
+            # Filter out any entries that are not tuples
+            self.data_manager.price_history = collections.deque(
+                [entry for entry in self.data_manager.price_history if isinstance(entry, tuple) and len(entry) > 1],
+                maxlen=self.data_manager.price_history.maxlen
+            )
 
-        for strategy in self.strategies:
-            if strategy.should_generate_signal(latest_price, self.data_manager.price_history):
-                signal = strategy.generate_signal(latest_price)
-                if signal:
-                    # Check if the signal generation limit is reached
-                    if self.signals_generated < self.signal_generation_limit:
-                        # Check if the signal is valid
-                        if signal.is_valid(latest_price):
-                            self.execute_trade(signal)
-                            self.signals_generated += 1
+            # Print the contents of price_history for debugging
+            #print(f"price_history: {self.data_manager.price_history}")
+
+            # Validate that price_history is not empty and contains valid tuples
+            if not self.data_manager.price_history or not isinstance(self.data_manager.price_history[-1], tuple):
+                raise ValueError("Invalid price history data")
+
+            # Get the latest price from the data manager
+            latest_price = self.data_manager.price_history[-1][1]  # Use index 1 for price
+
+            for strategy in self.strategies:
+                if strategy.should_generate_signal(self):
+                    signal = strategy.generate_signal(self, latest_price)  # Pass trading_model instance and latest_price
+                    if signal:
+                        # Check if the signal generation limit is reached
+                        if self.signals_generated < self.signal_generation_limit:
+                            # Check if the signal is valid
+                            if signal.is_valid(latest_price):
+                                self.execute_trade(signal)
+                                self.signals_generated += 1
+                            else:
+                                print(f"Signal from {strategy.name} is not valid. Skipping...")
                         else:
-                            print(f"Signal from {strategy.name} is not valid. Skipping...")
-                    else:
-                        print("Signal generation limit reached for this hour.")
-                        break  # Stop generating signals for this hour
+                            print("Signal generation limit reached for this hour.")
+                            break  # Stop generating signals for this hour
 
-        # Update the last strategy generation time
-        self.last_strategy_generation_time = time.time()
-
+            # Update the last strategy generation time
+            self.last_strategy_generation_time = time.time()
+        except Exception as e:
+            print(f"Error in generate_trading_signal: {e}")
+            raise
     def execute_trade(self, signal):
         """Executes a trade based on the given trading signal."""
-        # Check if a trade is already in progress
-        if self.current_position is not None:
-            print(f"Trade already in progress: {self.current_position}")
-            return
+        try:
+            # Check if a trade is already in progress
+            if self.current_position is not None:
+                return
 
-        # Check if enough time has passed since the last trade
-        if time.time() - self.last_trade_time < self.cooldown_period:
-            print(f"Cooldown period in effect. Waiting {self.cooldown_period} seconds before next trade.")
-            self.pending_signals.append(signal)  # Add the signal to pending signals
-            self.data_manager.save_signals(self.pending_signals)  # Save pending signals
-            return
+            # Check if enough time has passed since the last trade
+            if time.time() - self.last_trade_time < self.cooldown_period:
+                print(f"Cooldown period in effect. Waiting {self.cooldown_period} seconds before next trade.")
+                self.pending_signals.append(signal)  # Add the signal to pending signals
+                self.data_manager.save_signals(self.pending_signals)  # Save pending signals
+                return
 
-        latest_price = self.data_manager.price_history[-1]['close_price']
+            latest_price = self.data_manager.price_history[-1][1]  # Use index 1 for price
 
-        if signal.signal_type == "buy":
-            self.current_position = "buy"
-            self.buy_order(latest_price, signal)
-        elif signal.signal_type == "sell":
-            self.current_position = "sell"
-            self.sell_order(latest_price, signal)
+            if signal.signal_type == "buy":
+                self.current_position = "buy"
+                self.buy_order(latest_price, signal)
+            elif signal.signal_type == "sell":
+                self.current_position = "sell"
+                self.sell_order(latest_price, signal)
 
-        self.last_trade_time = time.time()
-        self.save_model_state()  # Save the model state after executing the trade
+            self.last_trade_time = time.time()
+            self.save_model_state()  # Save the model state after executing the trade
+        except Exception as e:
+            print(f"Error in execute_trade: {e}")
+            raise
 
     def buy_order(self, latest_price, signal):
         """Executes a buy order."""
-        self.trade_history.append({
-            'timestamp': time.time(),
-            'price': latest_price,
-            'type': 'buy',
-            'signal_source': signal.source
-        })
-        print(f"Buy order executed at {latest_price}, signal source: {signal.source}")
+        try:
+            self.trade_history.append({
+                'timestamp': time.time(),
+                'price': latest_price,
+                'type': 'buy',
+                'signal_source': signal
+            })
+            print(f"Buy order executed at {latest_price}, signal source: {signal}")
+        except Exception as e:
+            print(f"Error in buy_order: {e}")
+            raise
 
     def sell_order(self, latest_price, signal):
         """Executes a sell order."""
-        self.trade_history.append({
-            'timestamp': time.time(),
-            'price': latest_price,
-            'type': 'sell',
-            'signal_source': signal.source
-        })
-        print(f"Sell order executed at {latest_price}, signal source: {signal.source}")
+        try:
+            self.trade_history.append({
+                'timestamp': time.time(),
+                'price': latest_price,
+                'type': 'sell',
+                'signal_source': signal
+            })
+            print(f"Sell order executed at {latest_price}, signal source: {signal}")
+        except Exception as e:
+            print(f"Error in sell_order: {e}")
+            raise
 
     def close_open_position(self):
         """Closes any open position."""
+        # Print the contents of price_history for debugging
+        #print(f"price_history in close_open_position: {self.data_manager.price_history}")
+
+        # Filter out any entries that are not tuples
+        self.data_manager.price_history = collections.deque(
+            [entry for entry in self.data_manager.price_history if isinstance(entry, tuple) and len(entry) > 1],
+            maxlen=self.data_manager.price_history.maxlen
+        )
+
+        # Validate that price_history is not empty and contains valid tuples
+        if not self.data_manager.price_history or not isinstance(self.data_manager.price_history[-1], tuple):
+            raise ValueError("Invalid price history data")
+
         if self.current_position is not None:
-            latest_price = self.data_manager.price_history[-1]['close_price']
+            latest_price = self.data_manager.price_history[-1][1]  # Use index 1 for price
             if self.current_position == "buy":
-                self.sell_order(latest_price, trade_signal.TradeSignal("close_position", "sell"))
+                self.sell_order(latest_price, trade_signal.TradeSignal("close_position", "sell", timeframe="1m"))
             elif self.current_position == "sell":
-                self.buy_order(latest_price, trade_signal.TradeSignal("close_position", "buy"))
+                self.buy_order(latest_price, trade_signal.TradeSignal("close_position", "buy", timeframe="1m"))
+            print(f"Closed position: {self.current_position} at {latest_price}")
             self.current_position = None
             self.save_model_state()
 

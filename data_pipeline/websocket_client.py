@@ -32,6 +32,7 @@ class CoinMarketCapWebsocketClient:
         self.last_candle_start_time = None
         self.current_candle_high = None
         self.current_candle_low = None 
+        self.validate_latest_candle()
 
 
     def on_open(self, ws):
@@ -48,18 +49,20 @@ class CoinMarketCapWebsocketClient:
         """Handles incoming websocket messages."""
         try:
             data = json.loads(message)
-            print(message) # Keep this for debugging
-
             # Filter messages by symbol
             if data.get("d") and data["d"]["id"] == 1:
                 price = data["d"]["p"]
                 timestamp = int(data["t"]) / 1000  # Convert milliseconds to seconds
+
+                # Print received data for debugging
+                #print(f"Received data - timestamp: {timestamp}, price: {price}")
 
                 # Update candlestick data and get the completed candle
                 completed_candle = self._update_candlestick_data(timestamp, price) 
 
                 # Pass the completed candle to the DataManager
                 if completed_candle:
+                    #print(f"Completed candle: {completed_candle}")
                     self.on_message_callback(completed_candle) 
 
         except json.JSONDecodeError as e:
@@ -143,25 +146,25 @@ class CoinMarketCapWebsocketClient:
         current_minute = dt_object.minute
         current_second = dt_object.second
 
-        completed_candle = None # Initialize completed_candle
+        completed_candle = None  # Initialize completed_candle
 
-        # If it's the first second of a new minute, start a new candle
-        if current_second == 0:
+        # Check if we need to start a new candle
+        if self.last_candle_start_time is None or (current_minute != self.last_candle_start_time and current_second == 2):
             # Save the previous candle if it exists
             if self.candlestick_data:
-                completed_candle = self.candlestick_data[-1] # Assign the completed candle
+                completed_candle = self.candlestick_data[-1]  # Assign the completed candle
                 self._save_completed_candlestick(completed_candle)
                 self.candlestick_data.popleft()
 
             # Start a new candle (as a dictionary)
             self.candlestick_data.append({
                 'entry_time': timestamp,
-                'exit_time': timestamp + 60,
+                'exit_time': timestamp,
                 'open_price': price,
                 'close_price': price,
                 'high_price': price,
                 'low_price': price,
-            }) 
+            })
             self.current_candle_high = price
             self.current_candle_low = price
             self.last_candle_start_time = current_minute
@@ -173,17 +176,17 @@ class CoinMarketCapWebsocketClient:
                 self.current_candle_low = min(self.current_candle_low, price)
                 self.candlestick_data[-1] = {
                     'entry_time': last_candle['entry_time'],
-                    'exit_time': last_candle['exit_time'],
+                    'exit_time': timestamp,
                     'open_price': last_candle['open_price'],
                     'close_price': price,
                     'high_price': self.current_candle_high,
                     'low_price': self.current_candle_low,
                 }
-
-        return completed_candle # Return the completed candle (if any)
+        return completed_candle  # Return the completed candle (if any)
 
     def _save_completed_candlestick(self, candle):
         """Saves a completed candlestick to the CSV file."""
+        #print("Saving candle:", candle)
         with open(self.completed_candlesticks_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(
@@ -212,3 +215,25 @@ class CoinMarketCapWebsocketClient:
                         "Low Price",
                     ]
                 )
+
+
+    def validate_latest_candle(self):
+        """Validates the latest candle in the CSV file and deletes it if it doesn't meet the criteria."""
+        if not os.path.exists(self.completed_candlesticks_file):
+            return
+
+        with open(self.completed_candlesticks_file, 'r') as f:
+            lines = f.readlines()
+
+        if len(lines) < 2:
+            return  # No candles to validate
+
+        latest_candle = lines[-1].strip().split(',')
+        entry_time = datetime.datetime.strptime(latest_candle[0], '%Y-%m-%d %H:%M:%S')
+        exit_time = datetime.datetime.strptime(latest_candle[1], '%Y-%m-%d %H:%M:%S')
+
+        # Check if the candle starts at the second 2 and ends at the second 2 of the next minute
+        if entry_time.second != 2 or (exit_time - entry_time).seconds != 60:
+            print(f"Invalid latest candle: {latest_candle}. Deleting it.")
+            with open(self.completed_candlesticks_file, 'w') as f:
+                f.writelines(lines[:-1])  # Delete the last line

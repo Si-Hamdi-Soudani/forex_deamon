@@ -6,6 +6,13 @@ from model import trading_model
 import time
 import os
 import pickle
+from trading_logic.trading_strategy import (
+       create_sma_crossover_strategy,
+       create_sentiment_strategy,
+       create_rl_strategy,
+       create_combined_strategy,
+       create_rsi_overbought_strategy,
+   )
 
 # --- Configuration ---
 DATA_MANAGER_CONFIG = {
@@ -20,7 +27,7 @@ TRADING_MODEL_CONFIG = {
 # --- Main Function ---
 def main():
     """The main function that orchestrates the trading AI."""
-    # Initialize curses
+    #Initialize curses
     # curses.noecho()  # Don't echo key presses
     # curses.cbreak()  # React to key presses immediately
     # stdscr.keypad(True)  # Enable arrow keys
@@ -34,12 +41,22 @@ def main():
         try:
             model = trading_model.TradingModel(data_mgr)
             model.load_model_state()
+            model.strategies.append(create_sma_crossover_strategy())
+            model.strategies.append(create_sentiment_strategy()) 
+            model.strategies.append(create_rl_strategy())
+            model.strategies.append(create_combined_strategy()) 
+            model.strategies.append(create_rsi_overbought_strategy())
             print("Loaded existing trading model.")
         except (EOFError, pickle.UnpicklingError):
             print("Failed to load existing model. Creating a new one.")
             model = trading_model.TradingModel(data_mgr, **TRADING_MODEL_CONFIG)
     else:
         model = trading_model.TradingModel(data_mgr, **TRADING_MODEL_CONFIG)
+        model.strategies.append(create_sma_crossover_strategy())
+        model.strategies.append(create_sentiment_strategy()) 
+        model.strategies.append(create_rl_strategy())
+        model.strategies.append(create_combined_strategy()) 
+        model.strategies.append(create_rsi_overbought_strategy())
         print("Created a new trading model.")
     # Start Websocket Feed (Connect the client to the model):
     model.start_websocket_feed()
@@ -47,7 +64,7 @@ def main():
     # Main Loop:
     try:
         while True:
-            time.sleep(60)  # Check for new data every second
+            #time.sleep(60)  # Check for new data every second
             # Display performance report
             #display_performance_report(stdscr, model)
             model.evaluate_and_execute_trade()
@@ -122,27 +139,27 @@ def display_performance_report(stdscr, model, mse=None):
         # Compare with actual outcome if available
 
     # Other Existing Information
-    executed_trades = len(model.trade_history)
-    waiting_trades = len(model.pending_signals)
-    completed_trades = len(
-        [t for t in model.trade_history if t["status"] == "completed"]
-    )
-    winning_trades = len(
-        [t for t in model.trade_history if t.get("result") == "win"]
-    )
-    losing_trades = len([t for t in model.trade_history if t.get("result") == "loss"])
+    # executed_trades = len(model.trade_history)
+    # waiting_trades = len(model.pending_signals)
+    # completed_trades = len(
+    #     [t for t in model.trade_history if t["status"] == "completed"]
+    # )
+    # winning_trades = len(
+    #     [t for t in model.trade_history if t.get("result") == "win"]
+    # )
+    # losing_trades = len([t for t in model.trade_history if t.get("result") == "loss"])
 
-    stdscr.addstr(row, 0, f"Executed Trades: {executed_trades}")
-    row += 1
-    stdscr.addstr(row, 0, f"Waiting Trades: {waiting_trades}")
-    row += 1
-    stdscr.addstr(row, 0, f"Completed Trades: {completed_trades}")
-    row += 1
-    stdscr.addstr(row, 0, f"Winning Trades: {winning_trades}")
-    row += 1
-    stdscr.addstr(row, 0, f"Losing Trades: {losing_trades}")
-    row += 1
-    stdscr.addstr(row, 0, f"Total Strategies: {len(model.strategies)}")
+    # stdscr.addstr(row, 0, f"Executed Trades: {executed_trades}")
+    # row += 1
+    # stdscr.addstr(row, 0, f"Waiting Trades: {waiting_trades}")
+    # row += 1
+    # stdscr.addstr(row, 0, f"Completed Trades: {completed_trades}")
+    # row += 1
+    # stdscr.addstr(row, 0, f"Winning Trades: {winning_trades}")
+    # row += 1
+    # stdscr.addstr(row, 0, f"Losing Trades: {losing_trades}")
+    # row += 1
+    # stdscr.addstr(row, 0, f"Total Strategies: {len(model.strategies)}")
     row += 1
     if mse is not None:
         stdscr.addstr(row, 0, f"Model Validation MSE: {mse:.4f}")
@@ -181,4 +198,11 @@ def display_performance_report(stdscr, model, mse=None):
 
 
 if __name__ == "__main__":
+    # dt_object = datetime.datetime.fromtimestamp(datetime.timezone("Africa/Tunis"))
+    # current_minute = dt_object.minute
+    # current_second = dt_object.second
+    # while current_second != 0:
+    #     print("Waiting for the next minute to begin work, estimate waiting time: " ,current_second)
+    #     current_second = dt_object.second
+    #curses.wrapper(main)
     main()

@@ -203,12 +203,13 @@ class DataManager:
 
     def update_price_history(self, completed_candle):
         """Updates the price history with completed candlesticks."""
-        self.price_history.append(completed_candle)
+        # Ensure price_history contains tuples with the price at index 1
+        self.price_history.append((completed_candle['entry_time'], completed_candle['close_price']))
         self.save_data(self.price_history, self.price_history_file)
 
         # Checkpointing
         if time.time() - self.last_checkpoint_time >= self.checkpoint_interval:
-            self.save_checkpoint(completed_candle['entry_time']) # Use entry_time for checkpoint
+            self.save_checkpoint(completed_candle['entry_time'])  # Use entry_time for checkpoint
             self.last_checkpoint_time = time.time()
 
     def perform_rfe(self, X, y, n_features):

@@ -1,106 +1,250 @@
-from indicators import technicals
-from trading_logic import pattern_recognition
-import os
+from abc import ABC, abstractmethod
 import pickle
 import time
 
-class TradingStrategy:
-    """Represents a trading strategy with parameters and evaluation methods."""
+import numpy as np
 
-    def __init__(self, name, conditions, actions, parameters=None, strategy_id=None):
-        self.strategy_id = strategy_id or str(int(time.time() * 1000))  # Unique ID
+class TradeSignal:
+    """Represents a trading signal."""
+    def __init__(self, source = "", signal_type = "", timeframe=None):
+        self.source = source  # Source of the signal (e.g., 'SMA Crossover', 'RL Agent')
+        self.signal_type = signal_type  # 'buy', 'sell', or 'hold'
+        self.timeframe = timeframe  # Timeframe for the signal
+        self.timestamp = time.time()  # Time the signal was generated
+
+    def is_valid(self, current_price):
+        """Check if the signal is still valid based on time or price."""
+        # Example: Signal is valid for 60 seconds
+        return (time.time() - self.timestamp) < 60
+
+    def __str__(self):
+        return f"TradeSignal(source='{self.source}', type='{self.signal_type}', timestamp={self.timestamp})"
+
+class TradeStrategy(ABC):
+    """Base class for trading strategies."""
+
+    def __init__(self, name):
         self.name = name
-        self.conditions = conditions  # List of condition functions
-        self.actions = actions  # List of corresponding actions
-        self.parameters = parameters or {}  # Dictionary of parameters
-        self.performance = {"wins": 0, "losses": 0}
 
-    def evaluate(self, price_data):
-        """Evaluates the strategy on historical price data."""
-        for condition, action in zip(self.conditions, self.actions):
-            if condition(price_data, **self.parameters):
-                return {"action": action}
-        return None
+    @abstractmethod
+    def should_generate_signal(self, trading_model):
+        """Determines if a trading signal should be generated.
 
-    def update_performance(self, result):
-        """Updates the strategy's performance based on trade outcomes."""
-        if result == "win":
-            self.performance["wins"] += 1
-        elif result == "loss":
-            self.performance["losses"] += 1
+        Args:
+            trading_model (TradingModel): The trading model instance.
 
-    def get_win_rate(self):
-        """Calculates the win rate of the strategy."""
-        total_trades = self.performance["wins"] + self.performance["losses"]
-        if total_trades > 0:
-            return self.performance["wins"] / total_trades
-        else:
-            return 0
+        Returns:
+            bool: True if a signal should be generated, False otherwise.
+        """
+        pass
 
-    def save(self, data_dir="data"):
-        """Saves the trading strategy to a file."""
-        strategy_file = os.path.join(data_dir, f"strategy_{self.strategy_id}.pkl")
-        os.makedirs(data_dir, exist_ok=True)
-        with open(strategy_file, "wb") as f:
+    @abstractmethod
+    def generate_signal(self, trading_model, latest_price):
+        """Generates a trading signal.
+
+        Args:
+            trading_model (TradingModel): The trading model instance.
+            latest_price (float): The latest price of the asset.
+
+        Returns:
+            TradeSignal or None: The trading signal, or None if no signal is generated.
+        """
+        pass
+
+    def save(self, filename):
+        """Saves the strategy to a file."""
+        with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
-    @staticmethod
-    def load(strategy_id, data_dir="data"):
-        """Loads a trading strategy from a file."""
-        strategy_file = os.path.join(data_dir, f"strategy_{strategy_id}.pkl")
-        try:
-            with open(strategy_file, "rb") as f:
-                loaded_strategy = pickle.load(f)
+    @classmethod
+    def load(cls, filename):
+        """Loads a strategy from a file."""
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
 
-                # Ensure loaded strategy has conditions and actions
-                if not hasattr(loaded_strategy, 'conditions') or not hasattr(loaded_strategy, 'actions'):
-                    raise ValueError("Loaded strategy missing conditions or actions")
 
-                return loaded_strategy
-        except (FileNotFoundError, ValueError, EOFError) as e:  # Catch EOFError
-            print(f"Error loading strategy from {strategy_file}: {e}")
-            return None
 
-# --- Example Strategies ---
+class CombinedStrategy(TradeStrategy):
+    def __init__(self, short_sma_window=10, long_sma_window=20, 
+                sentiment_weight=0.5, rl_weight=0.5):
+        super().__init__("Combined Strategy (SMA + Sentiment + RL)")
+        self.short_sma_window = short_sma_window
+        self.long_sma_window = long_sma_window
+        self.sentiment_weight = sentiment_weight
+        self.rl_weight = rl_weight
 
-def sma_crossover_condition(price_data, short_sma_window, long_sma_window):
-    """Condition for SMA crossover strategy."""
-    short_sma = technicals.calculate_sma(price_data, short_sma_window)
-    long_sma = technicals.calculate_sma(price_data, long_sma_window)
-    return short_sma[-1] > long_sma[-1] and short_sma[-2] <= long_sma[-2]
+    def should_generate_signal(self, trading_model):
+        latest_price = trading_model.data_manager.price_history[-1][0]
+        price_history = [candle[0] for candle in trading_model.data_manager.price_history]
 
-def rsi_overbought_condition(price_data, rsi_period, overbought):
-    """Condition for RSI overbought strategy."""
-    rsi = technicals.calculate_rsi(price_data, rsi_period)
-    return rsi[-1] > overbought
+        # 1. SMA Crossover Check
+        short_sma = self.calculate_sma(price_history, self.short_sma_window)
+        long_sma = self.calculate_sma(price_history, self.long_sma_window)
+        crossover_condition = short_sma[-1] > long_sma[-1] and short_sma[-2] <= long_sma[-2]
 
-# --- Create Strategy Instances ---
+        # 2. Sentiment Check
+        sentiment_score = trading_model.calculate_sentiment_score()
+        sentiment_condition = sentiment_score > 0  # Adjust as needed
 
-def create_sma_crossover_strategy():
-    return TradingStrategy(
-        "SMA Crossover",
-        [sma_crossover_condition],
-        ["buy"],
-        parameters={"short_sma_window": 10, "long_sma_window": 20}
-    )
+        # 3. RL Agent Check
+        state = trading_model.rl_env._get_observation()
+        action = trading_model.drlagent.act(state.reshape(1, -1))
+        rl_condition = action == 1 if crossover_condition else action == 2  # Align with crossover
 
-def create_rsi_overbought_strategy():
-    return TradingStrategy(
-        "RSI Overbought",
-        [rsi_overbought_condition],
-        ["sell"],
-        parameters={"rsi_period": 14, "overbought": 70}
-    )
+        # Combine conditions (adjust weights as needed)
+        total_score = (crossover_condition + 
+                    self.sentiment_weight * (1 if sentiment_condition else -1) + 
+                    self.rl_weight * (1 if rl_condition else -1))
 
-# --- RSI Strategy (Updated) ---
-class RSIStrategy(TradingStrategy):
-    """A trading strategy based on the Relative Strength Index (RSI)."""
+        return total_score > 0.5  # Adjust threshold as needed
 
-    def __init__(self, name="RSI Strategy", parameters={"rsi_period": 14, "overbought": 70, "oversold": 30}):
-        # Use conditions and actions lists
-        conditions = [
-            lambda price_data, rsi_period, overbought: technicals.calculate_rsi(price_data, rsi_period)[-1] > overbought,
-            lambda price_data, rsi_period, oversold: technicals.calculate_rsi(price_data, rsi_period)[-1] < oversold
-        ]
-        actions = ["sell", "buy"]
-        super().__init__(name, conditions, actions, parameters)  # Correctly call superclass constructor
+    def generate_signal(self, trading_model, latest_price):
+        return TradeSignal(self.name, "buy")  # Adjust buy/sell logic
+
+    def calculate_sma(self, price_history, window):
+        if len(price_history) < window:
+            return [0] * len(price_history)
+        return [sum(price_history[i-window:i]) / window for i in range(window, len(price_history))]
+
+class RL_Strategy(TradeStrategy):
+    def __init__(self):
+        super().__init__("Reinforcement Learning Strategy")
+
+    def should_generate_signal(self, trading_model):
+        # Always generate a signal; let the RL agent decide the action
+        return True
+
+    def generate_signal(self, trading_model, latest_price):
+        # Get the RL agent's action
+        state = trading_model.rl_env._get_observation()  # Access through trading_model instance
+        action = trading_model.drlagent.act(state.reshape(1, -1))
+        signal_type = ["hold", "buy", "sell"][action]  # Map action to signal
+        return TradeSignal(self.name, signal_type)
+
+
+class SentimentStrategy(TradeStrategy):
+    def __init__(self, sentiment_threshold=0.2):
+        super().__init__("Sentiment-Based Strategy")
+        self.sentiment_threshold = sentiment_threshold
+
+    def should_generate_signal(self, trading_model):
+        sentiment_score = trading_model.calculate_sentiment_score()  # Access through trading_model instance
+        return abs(sentiment_score) >= self.sentiment_threshold  # Trade on strong sentiment
+
+    def generate_signal(self, trading_model, latest_price):
+        if trading_model.calculate_sentiment_score() > 0:  # Access through trading_model instance
+            return TradeSignal(self.name, "buy")
+        else:
+            return TradeSignal(self.name, "sell")
+
+
+class SMA_Crossover_Strategy(TradeStrategy):
+    def __init__(self, short_sma_window=10, long_sma_window=20, sentiment_threshold=0.2):
+        super().__init__("SMA Crossover with Sentiment")
+        self.short_sma_window = short_sma_window
+        self.long_sma_window = long_sma_window
+        self.sentiment_threshold = sentiment_threshold
+
+    def should_generate_signal(self, trading_model):
+        # Get the latest price and price history from the trading model
+        latest_price = trading_model.data_manager.price_history[-1][1]  # Use index 1 for price
+        price_history = [candle[1] for candle in trading_model.data_manager.price_history]  # Use index 1 for price
+
+        # Calculate SMAs
+        short_sma = self.calculate_sma(price_history, self.short_sma_window)
+        long_sma = self.calculate_sma(price_history, self.long_sma_window)
+
+        # Check for SMA crossover AND if latest_price is above/below the SMAs (example logic)
+        crossover_condition = short_sma[-1] > long_sma[-1] and short_sma[-2] <= long_sma[-2]
+        price_above_smas = latest_price > short_sma[-1] and latest_price > long_sma[-1]  # Example condition
+
+        # Check sentiment score
+        sentiment_score = trading_model.calculate_sentiment_score()
+        sentiment_condition = sentiment_score >= self.sentiment_threshold
+        print(f"{self.name}: should_generate_signal() - crossover_condition: {crossover_condition}, price_above_smas: {price_above_smas}, sentiment_condition: {sentiment_condition}")
+        # Generate a signal only if all conditions are met
+        return crossover_condition and price_above_smas and sentiment_condition
+
+    def generate_signal(self, trading_model, latest_price):
+        print(f"{self.name}: generate_signal()")
+        return TradeSignal(self.name, "buy")  # You can adjust buy/sell logic
+
+    def calculate_sma(self, price_history, window):
+        """Helper function to calculate SMA."""
+        if len(price_history) < window:
+            return [0] * len(price_history)
+        return [sum(price_history[i-window:i]) / window for i in range(window, len(price_history))]
+
+
+class RSI_Overbought_Strategy(TradeStrategy):
+    def __init__(self, rsi_period=14, overbought_threshold=70, oversold_threshold=30):
+        super().__init__("RSI Overbought/Oversold Strategy")
+        self.rsi_period = rsi_period
+        self.overbought_threshold = overbought_threshold
+        self.oversold_threshold = oversold_threshold
+
+    def should_generate_signal(self, trading_model):
+        price_history = [candle[0] for candle in trading_model.data_manager.price_history]
+        rsi = self.calculate_rsi(price_history, self.rsi_period)
+
+        # Generate signal if RSI is above overbought threshold or below oversold threshold
+        return rsi[-1] > self.overbought_threshold or rsi[-1] < self.oversold_threshold
+
+    def generate_signal(self, trading_model, latest_price):
+        price_history = [candle[0] for candle in trading_model.data_manager.price_history]  # Access through trading_model instance
+        rsi = self.calculate_rsi(price_history, self.rsi_period)
+
+        if rsi[-1] > self.overbought_threshold:
+            return TradeSignal(self.name, "sell")  # Sell when overbought
+        elif rsi[-1] < self.oversold_threshold:
+            return TradeSignal(self.name, "buy")
+
+    def calculate_rsi(self, price_history, period):
+        """Calculates the Relative Strength Index (RSI)."""
+        if len(price_history) < period:
+            return [50] * len(price_history)  # Return 50 as default for insufficient data
+
+        deltas = np.diff(price_history)
+        seed = deltas[:period+1]
+        up = seed[seed >= 0].sum()/period
+        down = -seed[seed < 0].sum()/period + 1e-8  # Add a small constant to prevent division by zero
+        rs = up/down
+        rsi = np.zeros_like(price_history)
+        rsi[:period] = 100. - 100./(1.+rs)
+
+        for i in range(period, len(price_history)):
+            delta = deltas[i-1]  # Use i-1 because deltas is one element shorter
+            if delta > 0:
+                upval = delta
+                downval = 0.
+            else:
+                upval = 0.
+                downval = -delta
+
+            up = (up*(period-1) + upval)/period
+            down = (down*(period-1) + downval)/period + 1e-8  # Add the constant here as well
+            rs = up/down
+            rsi[i] = 100. - 100./(1.+rs)
+
+        return rsi
+
+
+def create_sma_crossover_strategy(short_sma_window=10, long_sma_window=20, sentiment_threshold=0.2):
+    """Creates an instance of the SMA Crossover with Sentiment strategy."""
+    return SMA_Crossover_Strategy(short_sma_window, long_sma_window, sentiment_threshold)
+
+def create_sentiment_strategy(sentiment_threshold=0.2):
+    """Creates an instance of the Sentiment-Based Strategy."""
+    return SentimentStrategy(sentiment_threshold)
+
+def create_rl_strategy():
+    """Creates an instance of the Reinforcement Learning Strategy."""
+    return RL_Strategy()
+
+def create_combined_strategy(short_sma_window=10, long_sma_window=20, sentiment_weight=0.5, rl_weight=0.5):
+    """Creates an instance of the Combined Strategy."""
+    return CombinedStrategy(short_sma_window, long_sma_window, sentiment_weight, rl_weight)
+
+def create_rsi_overbought_strategy(rsi_period=14, overbought_threshold=70, oversold_threshold=30):
+    """Creates an instance of the RSI Overbought/Oversold Strategy."""
+    return RSI_Overbought_Strategy(rsi_period, overbought_threshold, oversold_threshold)
