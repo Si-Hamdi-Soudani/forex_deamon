@@ -7,12 +7,13 @@ import csv
 import os
 import datetime
 import threading
+from queue import Queue
 
 class CoinMarketCapWebsocketClient:
     """Connects to CoinMarketCap websocket and receives price updates."""
 
     def __init__(self, on_message_callback, on_error_callback=None, on_close_callback=None, 
-                 price_history_length=120, checkpoint_interval=60,  symbol='BTCUSDT'):
+                 price_history_length=120, checkpoint_interval=60, symbol='BTCUSDT'):
         """Initializes the websocket client."""
         self.on_message_callback = on_message_callback
         self.on_error_callback = on_error_callback
@@ -24,21 +25,15 @@ class CoinMarketCapWebsocketClient:
         self.current_candle = None
         self.ws = None
         self.connected = False
-        self.price_data_file = "price_data.csv"  # File to store price data
-        self.price_data_header = ['Date', 'Price']  # Update the header to 'Price'
-        self.message_buffer = ""
         self.symbol = symbol
         self.candlestick_data = collections.deque(maxlen=120)
         self.completed_candlesticks_file = "completed_candlesticks.csv"  # File to store completed candlesticks
         self._create_candlestick_csv()
         self.last_candle_start_time = None
         self.current_candle_high = None
-        self.current_candle_low = None
-        # Create the price data file and write the header if it doesn't exist
-        if not os.path.exists(self.price_data_file):
-            with open(self.price_data_file, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(self.price_data_header)
+        self.current_candle_low = None 
+
+
     def on_open(self, ws):
         """Sends the subscription message when the connection is opened."""
         ws.send(json.dumps({
@@ -50,35 +45,27 @@ class CoinMarketCapWebsocketClient:
         }))
 
     def on_message(self, ws, message):
+        """Handles incoming websocket messages."""
         try:
             data = json.loads(message)
-            print(message)
-            # Reset the buffer if parsing is successful
-            self.message_buffer = ""
-            timestamp = 0
-            price = 0
-            date_time = 0
+            print(message) # Keep this for debugging
 
             # Filter messages by symbol
             if data.get("d") and data["d"]["id"] == 1:
                 price = data["d"]["p"]
                 timestamp = int(data["t"]) / 1000  # Convert milliseconds to seconds
-                date_time = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
-                # Append price data to the CSV file
-                with open(self.price_data_file, 'a', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerow([date_time, price])
-                threading.Thread(target=self._update_candlestick_data, args=(timestamp, price)).start()
-            # Call the user-defined on_message callback
-            if self.on_message_callback:
-                print("runned")
-                self.on_message_callback({"timestamp": timestamp, "price": price})  # Pass the parsed data
+                # Update candlestick data and get the completed candle
+                completed_candle = self._update_candlestick_data(timestamp, price) 
+
+                # Pass the completed candle to the DataManager
+                if completed_candle:
+                    self.on_message_callback(completed_candle) 
 
         except json.JSONDecodeError as e:
-            print("json parsing error", str(e))
+            print("JSON parsing error", str(e))
         except Exception as e:
-            print("Error here", str(e))
+            print("Error:", str(e))
 
     def on_error(self, ws, error):
         """Handles websocket errors."""
@@ -89,6 +76,7 @@ class CoinMarketCapWebsocketClient:
         """Handles websocket closure."""
         if self.on_close_callback:
             self.on_close_callback(close_status_code, close_msg)
+
 
     def connect(self):
         """Connects to the CoinMarketCap websocket."""
@@ -134,6 +122,7 @@ class CoinMarketCapWebsocketClient:
                 return pickle.load(f)
         except FileNotFoundError:
             return None
+        
 
     def save_checkpoint(self, timestamp, filename='checkpoint.pkl'):
         """Saves a checkpoint with the last processed timestamp."""
@@ -147,86 +136,64 @@ class CoinMarketCapWebsocketClient:
                 return pickle.load(f)
         except FileNotFoundError:
             return None
-    def update_price_history(self, timestamp, price):
-        """Updates the price history and handles checkpointing."""
-
-        # Resumption Logic:
-        last_processed_timestamp = self.load_checkpoint()
-        if last_processed_timestamp and timestamp <= last_processed_timestamp:
-            print(f"Skipping duplicate timestamp: {timestamp}")
-            return  # Skip this message
-
-        # Candlestick Logic (1-minute candles):
-        if self.current_candle is None or timestamp >= self.current_candle[0] + 60:  # New candle every 60 seconds
-            print(f"Creating new candle at timestamp: {timestamp}")
-            # Create a new candle:
-            if self.current_candle is not None:
-                self.price_history.append(self.current_candle)  # Append the completed candle
-                print(f"Appended completed candle: {self.current_candle}")
-            self.current_candle = (timestamp, price, price, price, price)  # Open, High, Low, Close
-        else:
-            # Update the current candle:
-            print(f"Updating current candle at timestamp: {timestamp}")
-            self.current_candle = (
-                self.current_candle[0],  # Open time
-                max(self.current_candle[1], price),  # High
-                min(self.current_candle[2], price),  # Low
-                price  # Close
-            )
-
-        self.save_data(self.price_history)
-
-        # Checkpointing
-        if time.time() - self.last_checkpoint_time >= self.checkpoint_interval:
-            self.save_checkpoint(timestamp)
-            self.last_checkpoint_time = time.time()
 
     def _update_candlestick_data(self, timestamp, price):
-        """Updates the candlestick data for the 1-minute timeframe."""
-        # Align candle start times
-        current_minute = datetime.datetime.fromtimestamp(timestamp).minute
-        if self.last_candle_start_time is None or current_minute != self.last_candle_start_time:
-            # New minute has begun, save the previous candle (if it exists)
+        """Updates the candlestick data and returns the completed candle (if any)."""
+        dt_object = datetime.datetime.fromtimestamp(timestamp)
+        current_minute = dt_object.minute
+        current_second = dt_object.second
+
+        completed_candle = None # Initialize completed_candle
+
+        # If it's the first second of a new minute, start a new candle
+        if current_second == 0:
+            # Save the previous candle if it exists
             if self.candlestick_data:
-                self._save_completed_candlestick(self.candlestick_data[-1])  # Pass the current candle to the save function before removal
-                self.candlestick_data.popleft()  # Remove the candle from the deque
-                self.current_candle_high = None
-                self.current_candle_low = None
+                completed_candle = self.candlestick_data[-1] # Assign the completed candle
+                self._save_completed_candlestick(completed_candle)
+                self.candlestick_data.popleft()
 
-            self.last_candle_start_time = current_minute
-            self.candlestick_data.append((timestamp, price, price, price, price))  # Start a new candle
-
-            # Update high and low prices for the current candle
+            # Start a new candle (as a dictionary)
+            self.candlestick_data.append({
+                'entry_time': timestamp,
+                'exit_time': timestamp + 60,
+                'open_price': price,
+                'close_price': price,
+                'high_price': price,
+                'low_price': price,
+            }) 
             self.current_candle_high = price
             self.current_candle_low = price
+            self.last_candle_start_time = current_minute
         else:
-            # Update the current candle with new high, low, and close prices
-            last_candle = self.candlestick_data[-1]
-            self.current_candle_high = max(self.current_candle_high, price)
-            self.current_candle_low = min(self.current_candle_low, price)
-            # Update the candle in the deque
-            self.candlestick_data[-1] = (
-                last_candle[0],  # Open time
-                last_candle[1],  # Open Price
-                self.current_candle_high,  # High Price
-                self.current_candle_low,  # Low Price
-                price  # Close Price
-            )
+            # Update the current candle
+            if self.candlestick_data:
+                last_candle = self.candlestick_data[-1]
+                self.current_candle_high = max(self.current_candle_high, price)
+                self.current_candle_low = min(self.current_candle_low, price)
+                self.candlestick_data[-1] = {
+                    'entry_time': last_candle['entry_time'],
+                    'exit_time': last_candle['exit_time'],
+                    'open_price': last_candle['open_price'],
+                    'close_price': price,
+                    'high_price': self.current_candle_high,
+                    'low_price': self.current_candle_low,
+                }
+
+        return completed_candle # Return the completed candle (if any)
 
     def _save_completed_candlestick(self, candle):
         """Saves a completed candlestick to the CSV file."""
-        entry_time, open_price, high_price, low_price, close_price = candle
-        exit_time = entry_time + 60  # Exit time is 1 minute after entry
         with open(self.completed_candlesticks_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(
                 [
-                    datetime.datetime.fromtimestamp(entry_time).strftime('%Y-%m-%d %H:%M:%S'),
-                    datetime.datetime.fromtimestamp(exit_time).strftime('%Y-%m-%d %H:%M:%S'),
-                    open_price,
-                    close_price,
-                    high_price,
-                    low_price,
+                    datetime.datetime.fromtimestamp(candle['entry_time']).strftime('%Y-%m-%d %H:%M:%S'),
+                    datetime.datetime.fromtimestamp(candle['exit_time']).strftime('%Y-%m-%d %H:%M:%S'),
+                    candle['open_price'], 
+                    candle['close_price'],
+                    candle['high_price'],
+                    candle['low_price'],
                 ]
             )
 
