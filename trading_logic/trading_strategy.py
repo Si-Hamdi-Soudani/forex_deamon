@@ -4,21 +4,54 @@ import time
 
 import numpy as np
 
+import os
+import csv
+import time
+
 class TradeSignal:
     """Represents a trading signal."""
-    def __init__(self, source = "", signal_type = "", timeframe=None):
-        self.source = source  # Source of the signal (e.g., 'SMA Crossover', 'RL Agent')
-        self.signal_type = signal_type  # 'buy', 'sell', or 'hold'
-        self.timeframe = timeframe  # Timeframe for the signal
-        self.timestamp = time.time()  # Time the signal was generated
+    def __init__(self, signal_type, source, predicted_entry_time, predicted_interval, trust_score):
+        self.signal_type = signal_type
+        self.source = source
+        self.predicted_entry_time = predicted_entry_time
+        self.predicted_interval = predicted_interval
+        self.trust_score = trust_score
+        self.entry_price = None
+        self.exit_price = None
+        self.entry_time = None
+        self.exit_time = None
+        self.result = None
 
-    def is_valid(self, current_price):
-        """Check if the signal is still valid based on time or price."""
+    def is_valid(self, current_time):
+        """Check if the signal is still valid based on time."""
         # Example: Signal is valid for 60 seconds
-        return (time.time() - self.timestamp) < 60
+        return (current_time - self.timestamp) < 60
+
+    def save_to_csv(self, file_path):
+        """Saves the trade signal to a CSV file."""
+        file_exists = os.path.isfile(file_path)
+        with open(file_path, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            if not file_exists:
+                # Write header if file does not exist
+                writer.writerow(['trade_id', 'source', 'signal_type', 'predicted_entry_time', 'predicted_interval', 'trust_score', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'result'])
+            writer.writerow([self.trade_id, self.source, self.signal_type, self.predicted_entry_time, self.predicted_interval, self.trust_score, self.entry_price, self.exit_price, self.entry_time, self.exit_time, self.result])
+
+    def update_csv(self, file_path):
+        """Updates the trade signal in the CSV file."""
+        temp_file_path = file_path + '.tmp'
+        with open(file_path, mode='r', newline='') as file, open(temp_file_path, mode='w', newline='') as temp_file:
+            reader = csv.reader(file)
+            writer = csv.writer(temp_file)
+            for row in reader:
+                if row[0] == self.trade_id:
+                    writer.writerow([self.trade_id, self.source, self.signal_type, self.predicted_entry_time, self.predicted_interval, self.trust_score, self.entry_price, self.exit_price, self.entry_time, self.exit_time, self.result])
+                else:
+                    writer.writerow(row)
+        os.replace(temp_file_path, file_path)
 
     def __str__(self):
-        return f"TradeSignal(source='{self.source}', type='{self.signal_type}', timestamp={self.timestamp})"
+        return f"TradeSignal(source='{self.source}', type='{self.signal_type}', timestamp={self.timestamp}, predicted_entry_time={self.predicted_entry_time}, predicted_interval={self.predicted_interval}, trust_score={self.trust_score})"
 
 class TradeStrategy(ABC):
     """Base class for trading strategies."""

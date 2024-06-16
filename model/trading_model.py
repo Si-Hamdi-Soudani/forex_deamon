@@ -356,6 +356,19 @@ class TradingModel:
         self.max_len = 100
         self.load_or_train_sentiment_model()
 
+        # Engineer features from historical candlestick data
+        candlesticks = self.data_manager.load_candlesticks()  # Get the historical candlesticks
+
+        if len(candlesticks) < self.params['window_size']:
+            print(f"Insufficient candlestick data for training. Need at least {self.params['window_size']} candlesticks.")
+        else:
+            engineered_features = self.engineer_features(candlesticks)  # Engineer the features
+
+            # Build and train the LSTM model 
+            input_shape = (self.params['window_size'], 5)  # 5 features per candlestick
+            self.lstm_model = self.build_lstm_model(input_shape)
+            self.train_lstm_model(engineered_features)
+
     def start_websocket_feed(self):
         """Starts the websocket client in a separate thread."""
         self.websocket_client = websocket_client.CoinMarketCapWebsocketClient(
@@ -450,40 +463,44 @@ class TradingModel:
 
     def evaluate_and_execute_trade(self):
         """Evaluates trading signals and executes trades if conditions are met."""
-        # Check if enough time has passed since the last trade
-        if time.time() - self.last_trade_time < self.cooldown_period:
-            return
-
-        # Check if enough data is available for trading
-        if not self.sufficient_data:
-            if len(self.data_manager.price_history) >= self.minimum_candlesticks:
-                self.sufficient_data = True
-                print("Sufficient data available. Ready to trade.")
-            else:
-                print(f"Waiting for more data... ({len(self.data_manager.price_history)}/{self.minimum_candlesticks} candlesticks)")
+        try:
+            # Check if enough data is available for trading
+            if len(self.data_manager.price_history) < self.params['window_size']:
+                print(f"Waiting for more data... ({len(self.data_manager.price_history)}/{self.params['window_size']} candlesticks)")
                 return
 
-        # Check for pending signals first
-        if self.pending_signals:
-            self.process_pending_signals()
-            return  # Exit to avoid generating new signals while processing pending ones
+            # Ensure candlesticks are tuples and accessible by integer indices
+            candlesticks = list(self.data_manager.price_history)
+            print(f"Candlesticks: {candlesticks[:5]}")  # Debugging: Print the candlesticks to ensure they are in the expected format
+            
+            features = self.engineer_features(candlesticks)
+            print(f"Features: {features[:5]}")  # Debugging: Print the features to ensure they are in the expected format
+            
+            if features.shape[0] == 0:
+                raise ValueError("Invalid features generated.")
 
-        # Close any open position before generating a new trading signal
-        self.close_open_position()
+            # Recognize patterns using clustering
+            cluster_labels, kmeans_model = self.recognize_patterns(features)
+            cluster_stats = self.analyze_historical_data(candlesticks, cluster_labels)
 
-        # Generate a new trading signal
-        self.generate_trading_signal()
+            self.generate_trading_signal(features, cluster_labels, kmeans_model, cluster_stats)
+
+        except Exception as e:
+            print(f"Error in evaluate_and_execute_trade: {e}")
 
     def process_pending_signals(self):
         """Processes pending trading signals."""
         for signal in self.pending_signals:
-            if signal.is_valid(self.data_manager.price_history[-1]['close_price']):  # Check if the signal is still valid
-                self.execute_trade(signal)
-                self.pending_signals.remove(signal)
-                self.data_manager.save_signals(self.pending_signals)  # Save updated pending signals
-                return  # Process only one signal at a time
+            if time.time() >= signal.predicted_entry_time:
+                if signal.is_valid(time.time()):
+                    self.execute_trade(signal)
+                    self.pending_signals.remove(signal)
+                    self.data_manager.save_signals(self.pending_signals)  # Save updated pending signals
+                    # Start monitoring the trade in a separate thread
+                    threading.Thread(target=self.monitor_trade, args=(signal,)).start()
+                    return
 
-    def generate_trading_signal(self):
+    def generate_trading_signal(self, features, cluster_labels, kmeans_model, cluster_stats):
         """Generates a trading signal based on the selected strategy."""
         try:
             # Check if enough time has passed since the last strategy generation
@@ -493,31 +510,48 @@ class TradingModel:
             # Reset the signal counter
             self.signals_generated = 0
 
-            # Filter out any entries that are not tuples
-            self.data_manager.price_history = collections.deque(
-                [entry for entry in self.data_manager.price_history if isinstance(entry, tuple) and len(entry) > 1],
-                maxlen=self.data_manager.price_history.maxlen
-            )
-
-            # Print the contents of price_history for debugging
-            #print(f"price_history: {self.data_manager.price_history}")
-
             # Validate that price_history is not empty and contains valid tuples
             if not self.data_manager.price_history or not isinstance(self.data_manager.price_history[-1], tuple):
                 raise ValueError("Invalid price history data")
 
-            # Get the latest price from the data manager
             latest_price = self.data_manager.price_history[-1][1]  # Use index 1 for price
+            print(f"Latest price: {latest_price}")  # Debugging: Print the latest price to ensure it's accessed correctly
 
             for strategy in self.strategies:
                 if strategy.should_generate_signal(self):
-                    signal = strategy.generate_signal(self, latest_price)  # Pass trading_model instance and latest_price
+                    # Calculate trade parameters dynamically (make sure these functions return valid values)
+                    predicted_candle_features = self.predict_next_candle(features)
+
+                    # Reshape predicted_candle_features to (1, 5) before concatenation
+                    predicted_candle_features = predicted_candle_features.reshape(1, 5) 
+
+                    # Use the last 4 candlesticks from features and append the predicted features
+                    predicted_window_features = np.concatenate((features[-4:], predicted_candle_features), axis=0).flatten()
+                    print(f"Shape of predicted window features: {predicted_window_features.shape}")  # Debugging: Check the shape
+
+                    # Find the cluster for the predicted window
+                    predicted_cluster_id = kmeans_model.predict(predicted_window_features.reshape(1, -1))[0]
+                    future_execution_time = self.predict_future_execution_time(predicted_cluster_id, cluster_stats)
+                    predicted_interval = self.predict_interval(predicted_cluster_id, cluster_stats)
+                    trust_score = self.predict_trust_score(predicted_cluster_id, cluster_stats)
+
+                    # Instantiate the signal object with the calculated parameters
+                    signal = trade_signal.TradeSignal(
+                        strategy.name,  # Source of the signal
+                        "buy",  # You can adjust buy/sell logic here
+                        "1m",  # You can adjust timeframe logic here
+                        predicted_entry_time=future_execution_time,
+                        predicted_interval=predicted_interval,
+                        trust_score=trust_score
+                    )
+
                     if signal:
                         # Check if the signal generation limit is reached
                         if self.signals_generated < self.signal_generation_limit:
                             # Check if the signal is valid
-                            if signal.is_valid(latest_price):
-                                self.execute_trade(signal)
+                            if signal.is_valid(time.time()):
+                                self.pending_signals.append(signal)  # Store the signal for future execution
+                                signal.save_to_csv('trades.csv')  # Save the signal to CSV
                                 self.signals_generated += 1
                             else:
                                 print(f"Signal from {strategy.name} is not valid. Skipping...")
@@ -525,8 +559,6 @@ class TradingModel:
                             print("Signal generation limit reached for this hour.")
                             break  # Stop generating signals for this hour
 
-            # Update the last strategy generation time
-            self.last_strategy_generation_time = time.time()
         except Exception as e:
             print(f"Error in generate_trading_signal: {e}")
             raise
@@ -554,38 +586,69 @@ class TradingModel:
                 self.sell_order(latest_price, signal)
 
             self.last_trade_time = time.time()
-            self.save_model_state()  # Save the model state after executing the trade
+            self.save_model_state()   # Save the model state after executing the trade
         except Exception as e:
             print(f"Error in execute_trade: {e}")
             raise
 
-    def buy_order(self, latest_price, signal):
+    def buy_order(self, price, signal):
         """Executes a buy order."""
-        try:
-            self.trade_history.append({
-                'timestamp': time.time(),
-                'price': latest_price,
-                'type': 'buy',
-                'signal_source': signal
-            })
-            print(f"Buy order executed at {latest_price}, signal source: {signal}")
-        except Exception as e:
-            print(f"Error in buy_order: {e}")
-            raise
+        signal.entry_price = price
+        signal.entry_time = time.time()
+        signal.update_csv('trades.csv')
+        print(f"Buy order executed at {price}, signal source: {signal}")
 
-    def sell_order(self, latest_price, signal):
+    def sell_order(self, price, signal):
         """Executes a sell order."""
-        try:
-            self.trade_history.append({
-                'timestamp': time.time(),
-                'price': latest_price,
-                'type': 'sell',
-                'signal_source': signal
-            })
-            print(f"Sell order executed at {latest_price}, signal source: {signal}")
-        except Exception as e:
-            print(f"Error in sell_order: {e}")
-            raise
+        signal.entry_price = price
+        signal.entry_time = time.time()
+        signal.update_csv('trades.csv')
+        print(f"Sell order executed at {price}, signal source: {signal}")
+
+    def monitor_trade(self, signal):
+        """Monitors an active trade."""
+        start_time = time.time()
+        end_time = start_time + signal.predicted_interval * 60  # Convert minutes to seconds
+
+        while time.time() < end_time:
+            latest_price = self.data_manager.price_history[-1][1]
+            # ... (Add logic here to monitor price movements and potentially exit the trade early)
+            time.sleep(5)  # Check price every 5 seconds
+
+        self.close_trade(signal, latest_price)
+
+    def close_trade(self, signal, exit_price):
+        """Closes an active trade."""
+        signal.exit_price = exit_price
+        signal.exit_time = time.time()
+        if (signal.signal_type == "buy" and exit_price > signal.entry_price) or (
+            signal.signal_type == "sell" and exit_price < signal.entry_price
+        ):
+            signal.result = "win"
+        else:
+            signal.result = "loss"
+        signal.update_csv('trades.csv')
+        self.current_position = None
+        self.generate_trade_report(signal)
+
+    def generate_trade_report(self, signal):
+        """Generates a report for a completed trade."""
+        report = f"""
+        Trade Report (ID: {signal.trade_id})
+
+        Signal Source: {signal.source}
+        Signal Type: {signal.signal_type}
+        Trust Score: {signal.trust_score:.2f}
+
+        Entry Time: {datetime.datetime.fromtimestamp(signal.entry_time).strftime('%Y-%m-%d %H:%M:%S')}
+        Entry Price: {signal.entry_price}
+
+        Exit Time: {datetime.datetime.fromtimestamp(signal.exit_time).strftime('%Y-%m-%d %H:%M:%S')}
+        Exit Price: {signal.exit_price}
+
+        Result: {signal.result}
+        """
+        print(report)
 
     def close_open_position(self):
         """Closes any open position."""
@@ -971,3 +1034,175 @@ class TradingModel:
         print("Best Fitness:", hof[0].fitness.values[0])
 
         return best_params
+
+    def engineer_features(self, candlesticks):
+        """Engineers features for candlestick patterns."""
+        features = []
+        for i in range(len(candlesticks)):
+            candle = candlesticks[i]
+            # Ensure candle is accessed correctly
+            if isinstance(candle, tuple):
+                entry_time, close_price, open_price, high_price, low_price = candle
+            else:
+                entry_time = candle['entry_time']
+                close_price = candle['close_price']
+                open_price = candle['open_price']
+                high_price = candle['high_price']
+                low_price = candle['low_price']
+
+            body_size = close_price - open_price  # close_price - open_price
+            upper_shadow = high_price - max(close_price, open_price)  # high_price - max(close_price, open_price)
+            lower_shadow = min(close_price, open_price) - low_price  # min(close_price, open_price) - low_price
+            color = 1 if close_price > open_price else 0  # 1 for green, 0 for red
+
+            # Calculate moving averages (example: 5-period SMA)
+            if i >= 4:
+                sma_5 = np.mean([candlesticks[j][1] if isinstance(candlesticks[j], tuple) else candlesticks[j]['close_price'] for j in range(i-4, i+1)])  # 5-period SMA on close_price
+            else:
+                sma_5 = 0  # Or handle the case with fewer data points differently
+
+            features.append([body_size, upper_shadow, lower_shadow, color, sma_5])
+        features = np.array(features)
+        
+        # Debugging: Print the shape and first few rows of features
+        print(f"Shape of features: {features.shape}")
+        print(f"First few rows of features: {features[:5]}")
+
+        return features
+    
+    def recognize_patterns(self, features, window_size=5, n_clusters=5):
+        """Recognizes candlestick patterns using clustering."""
+        patterns = []
+        for i in range(window_size, len(features)):
+            window_features = features[i-window_size:i]
+            patterns.append(window_features.flatten())  # Flatten the window features
+
+        print(f"Patterns shape: {np.array(patterns).shape}") # Debugging: Check the shape of patterns
+
+        if len(patterns) == 0:
+            raise ValueError("No patterns found for clustering.")
+
+        # Ensure the number of clusters is less than or equal to the number of samples
+        n_clusters = min(n_clusters, len(patterns))
+
+        # Cluster the patterns using KMeans
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        cluster_labels = kmeans.fit_predict(patterns)
+        return cluster_labels, kmeans
+    
+    def analyze_historical_data(self, candlesticks, cluster_labels):
+        """Analyzes historical data for each cluster to determine average price movement."""
+        cluster_stats = {}
+        for cluster_id in range(len(set(cluster_labels))):
+            cluster_stats[cluster_id] = {
+                'frequency': 0,
+                'avg_price_change': 0,
+                'avg_duration': 0
+            }
+
+        for i in range(len(cluster_labels)):
+            cluster_id = cluster_labels[i]
+            # Analyze the price movement after the pattern (example: next 3 candlesticks)
+            next_candles = candlesticks[i+1:i+4]  # Get the next 3 candles
+            if len(next_candles) == 0:
+                continue
+            price_change = next_candles[-1][1] - candlesticks[i][1]  # Calculate price change (using close price)
+            duration = len(next_candles)  # Duration in minutes (assuming 1-minute candles)
+
+            cluster_stats[cluster_id]['frequency'] += 1
+            cluster_stats[cluster_id]['avg_price_change'] += price_change
+            cluster_stats[cluster_id]['avg_duration'] += duration
+
+        # Calculate averages
+        for cluster_id in cluster_stats:
+            cluster_stats[cluster_id]['avg_price_change'] /= cluster_stats[cluster_id]['frequency']
+            cluster_stats[cluster_id]['avg_duration'] /= cluster_stats[cluster_id]['frequency']
+        return cluster_stats
+    
+    def predict_future_execution_time(self, predicted_cluster_id, cluster_stats):
+        """Predicts the future execution time based on the predicted cluster."""
+        # Example: Execute at the start of the next minute
+        return time.time() + 60  
+
+    def predict_interval(self, predicted_cluster_id, cluster_stats):
+        """Predicts the trade interval based on the predicted cluster."""
+        return cluster_stats[predicted_cluster_id]['avg_duration']
+
+    def predict_trust_score(self, predicted_cluster_id, cluster_stats, prediction_confidence):
+        """Predicts the trust score based on the predicted cluster and the LSTM prediction confidence."""
+        historical_frequency = cluster_stats[predicted_cluster_id]['frequency'] / len(cluster_stats)
+        # Combine prediction confidence and historical frequency (example: simple average)
+        trust_score = (prediction_confidence + historical_frequency) / 2
+        return trust_score
+    
+    def build_lstm_model(self, input_shape):
+        """Builds the LSTM model for candlestick shape prediction."""
+        model = Sequential()
+        model.add(LSTM(50, return_sequences=True, input_shape=input_shape))
+        model.add(LSTM(50))
+        model.add(Dense(4))  # Output layer with 4 neurons for body_size, upper_shadow, lower_shadow, color
+        model.compile(loss='mse', optimizer='adam')
+        return model
+
+    def train_lstm_model(self, features, window_size=5):
+        """Trains the LSTM model."""
+        X, y = [], []
+        for i in range(window_size, len(features)):
+            X.append(features[i-window_size:i])
+            y.append(features[i][:4])  # Only take the first 4 features for y
+
+        X = np.array(X)
+        y = np.array(y)
+
+        # Reshape X to (samples, time steps, features)
+        X = X.reshape(X.shape[0], window_size, 5)
+
+        # Ensure y has the correct number of samples and features
+        y = y.reshape(y.shape[0], 4)  # 4 output features
+
+        # Debugging: Print the shapes
+        print(f"Shape of X: {X.shape}")
+        print(f"Shape of y: {y.shape}")
+
+        batch_size = 32
+        steps_per_epoch = min(max(1, len(X) // batch_size), 4)  # Ensure steps_per_epoch does not exceed available data
+
+        # Repeat the data to ensure enough data for each epoch
+        dataset = tf.data.Dataset.from_tensor_slices((X, y)).batch(batch_size).repeat()
+
+        self.lstm_model.fit(dataset, epochs=10, steps_per_epoch=steps_per_epoch)
+        # Save the trained model
+        self.save_model()
+
+    def predict_next_candle(self, features, window_size=5):
+        """Predicts the features of the next candlestick."""
+        last_window = features[-window_size:].reshape(1, window_size, -1)  # Reshape for LSTM input
+        predicted_features = self.lstm_model.predict(last_window)
+        print(f"Shape of predicted features: {predicted_features.shape}")  # Debugging: Check the shape of predicted features
+
+        # Add a dummy feature to predicted_features
+        predicted_features = np.concatenate((predicted_features, np.zeros((1, 1))), axis=1)  # Add a column of zeros
+        print(f"Shape of predicted features after adding dummy: {predicted_features.shape}")  # Debugging
+
+        # Replicate the predicted features to create a 5x5 window
+        predicted_features_replicated = np.tile(predicted_features, (1, window_size))  # Replicate 5 times
+        print(f"Shape of replicated predicted features: {predicted_features_replicated.shape}")  # Debugging: Check the shape
+
+        return predicted_features_replicated.flatten()  # Flatten the replicated features
+
+    def evaluate_model(self, X_test, y_test):
+        """Evaluates the LSTM model on test data."""
+        evaluation = self.lstm_model.evaluate(X_test, y_test)
+        print(f"Model Evaluation: Loss = {evaluation}")
+
+    def save_model(self):
+        """Saves the trained LSTM model."""
+        self.lstm_model.save('trained_lstm_model.h5')
+        print("Trained LSTM model saved successfully.")
+
+    def monitor_predictions(self, X_test, y_test):
+        """Monitors the model's predictions on test data."""
+        predictions = self.lstm_model.predict(X_test)
+        print("Sample Predictions vs Actuals")
+        for i in range(min(10, len(predictions))):  # Display first 10 predictions
+            print(f"Prediction: {predictions[i]}, Actual: {y_test[i]}")

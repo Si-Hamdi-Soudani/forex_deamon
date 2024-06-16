@@ -148,8 +148,8 @@ class CoinMarketCapWebsocketClient:
 
         completed_candle = None  # Initialize completed_candle
 
-        # Check if we need to start a new candle
-        if self.last_candle_start_time is None or (current_minute != self.last_candle_start_time and current_second == 2):
+        # Check if we're at the second 2 of the minute
+        if current_second == 2:
             # Save the previous candle if it exists
             if self.candlestick_data:
                 completed_candle = self.candlestick_data[-1]  # Assign the completed candle
@@ -159,7 +159,7 @@ class CoinMarketCapWebsocketClient:
             # Start a new candle (as a dictionary)
             self.candlestick_data.append({
                 'entry_time': timestamp,
-                'exit_time': timestamp,
+                'exit_time': timestamp,  # Placeholder, will be updated later
                 'open_price': price,
                 'close_price': price,
                 'high_price': price,
@@ -169,19 +169,40 @@ class CoinMarketCapWebsocketClient:
             self.current_candle_low = price
             self.last_candle_start_time = current_minute
         else:
-            # Update the current candle
-            if self.candlestick_data:
-                last_candle = self.candlestick_data[-1]
-                self.current_candle_high = max(self.current_candle_high, price)
-                self.current_candle_low = min(self.current_candle_low, price)
-                self.candlestick_data[-1] = {
-                    'entry_time': last_candle['entry_time'],
-                    'exit_time': timestamp,
-                    'open_price': last_candle['open_price'],
+            # If we're not at the second 2, 
+            # wait until the next minute before starting a new candle
+            if self.last_candle_start_time is not None and current_minute != self.last_candle_start_time:
+                # Wait until the second 2 of the next minute
+                while current_second != 2:
+                    time.sleep(1)
+                    current_second = datetime.datetime.fromtimestamp(time.time()).second
+
+                # Start a new candle
+                self.candlestick_data.append({
+                    'entry_time': time.time(),
+                    'exit_time': time.time(),  # Placeholder, will be updated later
+                    'open_price': price,
                     'close_price': price,
-                    'high_price': self.current_candle_high,
-                    'low_price': self.current_candle_low,
-                }
+                    'high_price': price,
+                    'low_price': price,
+                })
+                self.current_candle_high = price
+                self.current_candle_low = price
+                self.last_candle_start_time = current_minute
+            else:
+                # Update the current candle
+                if self.candlestick_data:
+                    last_candle = self.candlestick_data[-1]
+                    self.current_candle_high = max(self.current_candle_high, price)
+                    self.current_candle_low = min(self.current_candle_low, price)
+                    self.candlestick_data[-1] = {
+                        'entry_time': last_candle['entry_time'],
+                        'exit_time': timestamp,
+                        'open_price': last_candle['open_price'],
+                        'close_price': price,
+                        'high_price': self.current_candle_high,
+                        'low_price': self.current_candle_low,
+                    }
         return completed_candle  # Return the completed candle (if any)
 
     def _save_completed_candlestick(self, candle):

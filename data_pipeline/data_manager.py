@@ -28,8 +28,16 @@ class DataManager:
         self.signals_file = os.path.join(self.data_dir, "signals.pkl")
         self.news_articles = []
 
-        # Load data on initialization
-        self.price_history = self.load_data(self.price_history_file) or collections.deque(maxlen=self.price_history_length)
+        # Ensure necessary files are created or load data
+        if os.path.exists(self.price_history_file):
+            print("Loading existing price history...")
+            self.price_history = self.load_data(self.price_history_file)
+            self.price_history = collections.deque(self.price_history, maxlen=self.price_history_length)
+        else:
+            print("Creating price history from completed_candlesticks.csv...")
+            self.price_history = self.load_price_history_from_csv('completed_candlesticks.csv')
+            self.save_data(list(self.price_history), self.price_history_file)
+
         self.last_checkpoint_time = self.load_checkpoint(self.checkpoint_file) or time.time()
         self.pending_signals = self.load_signals(self.data_dir) or []
 
@@ -50,7 +58,7 @@ class DataManager:
             self._train_word2vec_model()
             self.save_word2vec_model()
         self.window_size = 10
-        self.features = 4 
+        self.features = 4
 
 
     def save_data(self, data, filename):
@@ -58,6 +66,29 @@ class DataManager:
         os.makedirs(self.data_dir, exist_ok=True)  # Create data directory if it doesn't exist
         with open(filename, "wb") as f:
             pickle.dump(data, f)
+
+    def load_price_history_from_csv(self, filename):
+        """Loads price history data from a CSV file and stores it in a deque."""
+        try:
+            price_history = collections.deque(maxlen=self.price_history_length)
+            with open(filename, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    try:
+                        entry_time = datetime.datetime.strptime(row['Entry Time'], '%Y-%m-%d %H:%M:%S').timestamp()
+                        close_price = float(row['Close Price'])
+                        open_price = float(row['Open Price'])
+                        high_price = float(row['High Price'])
+                        low_price = float(row['Low Price'])
+                        price_history.append((entry_time, close_price, open_price, high_price, low_price))
+                    except Exception as e:
+                        print(f"Error parsing row: {row}. Error: {e}")
+                        continue
+            print(f"Loaded {len(price_history)} candlestick entries for price history.")
+            return price_history
+        except FileNotFoundError:
+            print(f"File {filename} not found.")
+            return collections.deque(maxlen=self.price_history_length)
 
     def fetch_binance_news(self):
         """Fetches news articles from Binance."""
@@ -203,14 +234,15 @@ class DataManager:
 
     def update_price_history(self, completed_candle):
         """Updates the price history with completed candlesticks."""
-        # Ensure price_history contains tuples with the price at index 1
-        self.price_history.append((completed_candle['entry_time'], completed_candle['close_price']))
-        self.save_data(self.price_history, self.price_history_file)
+        # Ensure price_history contains tuples with the necessary data
+        self.price_history.append((completed_candle['entry_time'], completed_candle['close_price'], completed_candle['open_price'], completed_candle['high_price'], completed_candle['low_price']))
+        self.save_data(list(self.price_history), self.price_history_file)
 
         # Checkpointing
         if time.time() - self.last_checkpoint_time >= self.checkpoint_interval:
             self.save_checkpoint(completed_candle['entry_time'])  # Use entry_time for checkpoint
             self.last_checkpoint_time = time.time()
+
 
     def perform_rfe(self, X, y, n_features):
         """Performs Recursive Feature Elimination (RFE) to select the most important features."""
@@ -278,17 +310,40 @@ class DataManager:
             with open(filename, 'r') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    candlesticks.append({
-                        'entry_time': datetime.datetime.strptime(row['Entry Time'], '%Y-%m-%d %H:%M:%S').timestamp(),
-                        'exit_time': datetime.datetime.strptime(row['Exit Time'], '%Y-%m-%d %H:%M:%S').timestamp(),
-                        'open_price': float(row['Open Price']),
-                        'close_price': float(row['Close Price']),
-                        'high_price': float(row['High Price']),
-                        'low_price': float(row['Low Price']),
-                    })
+                    try:
+                        candlestick = {
+                            'entry_time': datetime.datetime.strptime(row['Entry Time'], '%Y-%m-%d %H:%M:%S').timestamp(),
+                            'exit_time': datetime.datetime.strptime(row['Exit Time'], '%Y-%m-%d %H:%M:%S').timestamp(),
+                            'open_price': float(row['Open Price']),
+                            'close_price': float(row['Close Price']),
+                            'high_price': float(row['High Price']),
+                            'low_price': float(row['Low Price']),
+                        }
+                        # Validate candlestick
+                        if self.is_valid_candlestick(candlestick):
+                            candlesticks.append(candlestick)
+                        else:
+                            print(f"Invalid candlestick: {row}. Skipping it.")
+                    except Exception as e:
+                        print(f"Error parsing candlestick: {row}. Error: {e}")
+                        continue
+            print(f"Loaded {len(candlesticks)} candlesticks.")
             return candlesticks
         except FileNotFoundError:
-            return None
+            print(f"File {filename} not found.")
+            return []
+
+    def is_valid_candlestick(self, candlestick):
+        """Validates a candlestick to ensure all fields are present and values are reasonable."""
+        required_fields = ['entry_time', 'exit_time', 'open_price', 'close_price', 'high_price', 'low_price']
+        for field in required_fields:
+            if field not in candlestick or not isinstance(candlestick[field], (int, float)):
+                return False
+        if candlestick['high_price'] < max(candlestick['open_price'], candlestick['close_price']):
+            return False
+        if candlestick['low_price'] > min(candlestick['open_price'], candlestick['close_price']):
+            return False
+        return True
 
     def preprocess_candlestick_data(self, candlesticks, window_size=10):
         """Preprocesses candlestick data for analysis."""

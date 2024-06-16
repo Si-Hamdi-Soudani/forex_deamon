@@ -13,6 +13,8 @@ from trading_logic.trading_strategy import (
        create_combined_strategy,
        create_rsi_overbought_strategy,
    )
+from keras.src.saving import load_model
+from keras.src.losses import MeanSquaredError
 
 # --- Configuration ---
 DATA_MANAGER_CONFIG = {
@@ -27,25 +29,24 @@ TRADING_MODEL_CONFIG = {
 # --- Main Function ---
 def main():
     """The main function that orchestrates the trading AI."""
-    #Initialize curses
-    # curses.noecho()  # Don't echo key presses
-    # curses.cbreak()  # React to key presses immediately
-    # stdscr.keypad(True)  # Enable arrow keys
-
     # Initialize Data Manager:
     data_mgr = data_manager.DataManager(**DATA_MANAGER_CONFIG)
 
     # Load or Create Trading Model:
     model_file = "trading_model.pkl"
+    lstm_model_file = "trained_lstm_model.h5"
     if os.path.exists(model_file) and os.path.getsize(model_file) > 0:
         try:
             model = trading_model.TradingModel(data_mgr)
             model.load_model_state()
             model.strategies.append(create_sma_crossover_strategy())
-            model.strategies.append(create_sentiment_strategy()) 
+            model.strategies.append(create_sentiment_strategy())
             model.strategies.append(create_rl_strategy())
-            model.strategies.append(create_combined_strategy()) 
+            model.strategies.append(create_combined_strategy())
             model.strategies.append(create_rsi_overbought_strategy())
+            if os.path.exists(lstm_model_file):
+                model.lstm_model = load_model(lstm_model_file, custom_objects={"mse": MeanSquaredError()})
+                print("Loaded existing LSTM model.")
             print("Loaded existing trading model.")
         except (EOFError, pickle.UnpicklingError):
             print("Failed to load existing model. Creating a new one.")
@@ -53,30 +54,25 @@ def main():
     else:
         model = trading_model.TradingModel(data_mgr, **TRADING_MODEL_CONFIG)
         model.strategies.append(create_sma_crossover_strategy())
-        model.strategies.append(create_sentiment_strategy()) 
+        model.strategies.append(create_sentiment_strategy())
         model.strategies.append(create_rl_strategy())
-        model.strategies.append(create_combined_strategy()) 
+        model.strategies.append(create_combined_strategy())
         model.strategies.append(create_rsi_overbought_strategy())
         print("Created a new trading model.")
+    
     # Start Websocket Feed (Connect the client to the model):
     model.start_websocket_feed()
 
     # Main Loop:
     try:
         while True:
-            #time.sleep(60)  # Check for new data every second
-            # Display performance report
-            #display_performance_report(stdscr, model)
+            time.sleep(4)  # Check for new data every second
             model.evaluate_and_execute_trade()
             # Periodically save the model and trade history
             if time.time() % 600 < 1:  # Save every 10 minutes
                 model.save_model_state()
+                model.save_model()  # Save the trained LSTM model
                 print("Model and trade history saved.")
-
-            # Check for key presses
-            # key = stdscr.getch()
-            # if key == ord("q"):
-            #     break
 
     except KeyboardInterrupt:
         print("Stopping the trading AI...")
@@ -87,6 +83,7 @@ def main():
 
         # Save the Model and Trade History:
         model.save_model_state()
+        model.save_model()  # Save the trained LSTM model
         print("Trading model and trade history saved.")
 
 
